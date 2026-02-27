@@ -33,9 +33,9 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
     print_string(start_screen);
     delay(0x10000000);
     cleanscreen(' ', 0x0f);
+    changcursor_color(0x0f);
     char* file = (char*)0x200000;
     fat32_read_file(fat, "/hello.txt", (uint8_t*)file, 512);
     print_string(file);
-    changcursor_color(0x0f);
     while (1) {}
 }
