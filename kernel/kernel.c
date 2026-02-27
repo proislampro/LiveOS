@@ -35,7 +35,15 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
     cleanscreen(' ', 0x0f);
     changcursor_color(0x0f);
     char* file = (char*)0x200000;
-    fat32_read_file(fat, "/hello.txt", (uint8_t*)file, 512);
-    print_string(file);
+    if (fat32_init() == 0) {
+        if (fat32_read_file(fat, "/hello.txt", (uint8_t*)file, 511) > 0) {
+            file[511] = '\0';
+            print_string(file);
+        } else {
+            print_string("Unable to read /hello.txt");
+        }
+    } else {
+        print_string("Unable to init FAT32");
+    }
     while (1) {}
 }
