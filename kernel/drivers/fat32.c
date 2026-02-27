@@ -37,6 +37,7 @@ struct __attribute__((__packed__)) FAT32_BPB {
 struct FAT32 {
     uint32_t partition_start_lba;
     uint32_t fat_start_lba;
+    uint32_t fat_size_bytes;
     uint32_t data_start_lba;
     uint16_t bytes_per_sector;
     uint8_t  sectors_per_cluster;
@@ -110,7 +111,19 @@ char* pad_short_name(const char* name) {
     return padded;
 }
 
+uint32_t fat32_next_cluster(struct FAT32* fat, uint32_t cluster)  {
+    uint32_t fat_offset = cluster * 4;
+    uint32_t fat_sector = fat->fat_start_lba + (fat_offset / fat->bytes_per_sector);
+    uint32_t ent_offset = fat_offset % fat->bytes_per_sector;
 
+    uint8_t buffer[512];
+    if (read_sector(fat_sector, buffer) != 0) {
+        return 0xFFFFFFFF;
+    }
+
+    uint32_t next_cluster = *(uint32_t*)(buffer + ent_offset);
+    return next_cluster & 0x0FFFFFFF;
+}
 
 char** split_path(const char* path, int* count) {
     char** components;
@@ -148,6 +161,7 @@ int fat32_init() {
     }
 
     fat->fat_start_lba = 2048 + bpb->BPB_RsvdSecCnt;
+    fat->fat_size_bytes = bpb->BPB_FATSz32 * bpb->BPB_BytsPerSec;
     fat->data_start_lba = 2048 + bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32);
     fat->root_cluster = bpb->BPB_RootClus;
     fat->bytes_per_sector = bpb->BPB_BytsPerSec;
@@ -172,7 +186,10 @@ uint32_t fat32_find_file (struct FAT32* fat, const char* path) {
                 struct DIR_entry* entry = (struct DIR_entry*)(buffer + j);
                 if (entry->DIR_Name == pad_short_name(i)) found = 1;
             }
-            
+            if (!found) {
+                current_cluster = fat32_next_cluster(fat, current_cluster);
+                if (current_cluster >= 0x0FFFFFF8) return 0;
+            }
         }
     }
     return current_cluster;
