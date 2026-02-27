@@ -216,45 +216,9 @@ uint32_t fat32_find_file (struct FAT32* fat, const char* path) {
     for (int i = 0; i < component_count; i++) {
         uint32_t cluster = current_cluster;
         int found = 0;
-
-        while (cluster < 0x0FFFFFF8) {
-            uint8_t buffer[fat->bytes_per_sector * fat->sector_per_cluster];
-
-            if (read_cluster(fat, cluster, buffer) != 0) return 0;
-
-            char lfn_name[256];
-            memset(lfn_name, 0, sizeof(lfn_name));
-            int lfn_length = 0;
-
-            for (int offset = 0; offset < fat->bytes_per_sector * fat->sector_per_cluster; offset += sizeof(DirEntry)) {
-                DirEntry* entry = (DirEntry*)(buffer + offset);
-                if (entry->name[0] == 0x00) break;
-                if (entry->name[0] == 0xE5) {
-                    lfn_length = 0;
-                    continue;
-                }
-                if (entry->attr == 0x0F) {
-                    LFNEntry* lfn = (LFNEntry*)entry;
-                    int order = (lfn->order & 0x1F) - 1;
-                    lfn_extract(lfn, lfn_name, order * 13);
-                    lfn_length = 1;
-                    continue;
-                }
-                char name[256];
-                if (lfn_length) strcpy(name, lfn_name);
-                else strcpy(name, format_short_name(entry->name));
-                if (strcmp(name, components[i]) == 0) {
-                    current_cluster = ((uint32_t)entry->first_cluster_high << 16) | entry->first_cluster_low;
-                    found = 1;
-                    lfn_length = 0;
-                    break;
-                }
-                lfn_length = 0;
-            }
-            if (found) break;
-            cluster = fat32_read_fat_entry(fat, cluster);
+        while (!found) {
+            
         }
-        if (!found) return 0;
     }
     return current_cluster;
 }
