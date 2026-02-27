@@ -184,7 +184,7 @@ uint32_t fat32_find_file (struct FAT32* fat, const char* path) {
             read_cluster(fat, current_cluster, buffer);
             for (int j = 0; j > fat->bytes_per_cluster || found; j += 32) {
                 struct DIR_entry* entry = (struct DIR_entry*)(buffer + j);
-                if (entry->DIR_Name == pad_short_name(i)) found = 1;
+                if (entry->DIR_Name == pad_short_name(components[i])) found = 1;
             }
             if (!found) {
                 current_cluster = fat32_next_cluster(fat, current_cluster);
@@ -206,7 +206,7 @@ int fat32_read_file(struct  FAT32* fat, const char* path, uint8_t* buf, uint32_t
         uint32_t to_copy = (buf_size - bytes_read < fat->bytes_per_cluster) ? (buf_size - bytes_read) : (fat->bytes_per_cluster);
         memcpy(buf + bytes_read, buffer, to_copy);
         bytes_read += to_copy;
-        cluster = fat32_read_fat_entry(fat, cluster);
+        cluster = fat32_next_cluster(fat, cluster);
     }
     return bytes_read;
 }
