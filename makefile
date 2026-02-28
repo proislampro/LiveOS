@@ -8,7 +8,6 @@ LIMINE_DIR = limine
 CONFIG     = limine.conf
 
 APPS_DIR   = binairies/apps
-SHELLO     = binairies/apps/shell.o
 SHELLC     = apps/shell.c
 SHELLB	   = shell.app
 
@@ -16,7 +15,7 @@ CC = i686-elf-gcc
 AS = nasm
 LD = i686-elf-ld
 
-CFLAGS  = -ffreestanding -m32 -O2 -Wall -Wextra -fno-pic
+CFLAGS  = -ffreestanding -m32 -O2 -Wall -Wextra -fno-pic -nostdlib
 LDFLAGS = -T linker.ld -nostdlib
 
 all: clean $(IMAGE_NAME)
@@ -30,11 +29,9 @@ $(KERNELO): $(KERNELC)
 $(BOOTO): $(KERNELE)
 	$(AS) -f elf32 $(KERNELE) -o $(BOOTO)
 
-$(SHELLO): $(SHELLC)
-	$(CC) $(CFLAGS) -c $(SHELLC) -o $(SHELLO)
+$(SHELLB): $(SHELLC)
+	$(CC) $(CFLAGS) $(SHELLC) -o $(APPS_DIR)/$(SHELLB)
 
-$(SHELLB): $(SHELLO)
-	$(LD) -m elf_i386 -T apps/shell.ld -o $(APPS_DIR)/$(SHELLB) $(SHELLO)
 
 
 

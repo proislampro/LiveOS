@@ -1,6 +1,6 @@
 #include <stdint.h>
 #define VGA_WIDTH 80
-#define VGA_HEIGHT 22
+#define VGA_HEIGHT 25
 #define VGA_SIZE (VGA_WIDTH * VGA_HEIGHT)
 #define MAX_PRINT_LOG 100
 
@@ -106,7 +106,12 @@ static void printchar_raw(char c, uint8_t color) {
     else printchar_in(c, color, vga_index++);
     while (vga_index >= VGA_SIZE - VGA_WIDTH) { scroll(1); vga_index -= VGA_WIDTH; }
 }
-void printchar(char c, uint8_t color) { hide_cursor(); printchar_raw(c, color); show_cursor(); }
+void printchar(char c, uint8_t color) {
+    hide_cursor();
+    printchar_raw(c, color);
+    if (getpointer() >= VGA_SIZE - VGA_WIDTH) scroll(1);
+    show_cursor();
+}
 uint8_t hex_to_int(char c) { if (c >= '0' && c <= '9') return c - '0'; c |= 0x20; if (c >= 'a' && c <= 'f') return c - 'a' + 10; return 0; }
 uint32_t str_to_hex(char* str) { uint32_t val = 0; while (*str) val = (val << 4) | hex_to_int(*str++); return val; }
 void print_string(char* string) {

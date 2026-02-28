@@ -5,4 +5,5 @@
 #include "dependencies/io.c"
 #include "dependencies/system.c"
 #include "drivers.c"
+#include "gdt.c"
 #include "interupts.c"

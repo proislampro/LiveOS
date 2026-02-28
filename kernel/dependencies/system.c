@@ -1,10 +1,11 @@
 #include <stdint.h>
 
-char* start_screen = "\n\n\n\n                        ______________________________\n                       / \\                            .\n                      |   |                           |.\n                       \\_ |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |           LiveOS          |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |    _______________________|___\n                          |   /                           /.\n                          \\_/____________________________/.\n\n\n";
+char* start_screen = "\n\n\n\n                        ______________________________\n                       / \\                            .\n                      |   |                           |.\n                       \\_ |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |           LiveOS          |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |                           |.\n                          |    _______________________|___\n                          |   /                           /.\n                          \\_/____________________________/.";
 
 void delay(uint32_t count) {
+    uint32_t new_count = count * 0xa0000;
     volatile uint32_t i;
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < new_count; i++) {
         __asm__ volatile("nop");
     }
 }
