@@ -14,6 +14,16 @@ void* memcpy(void* dest, const void* src, size_t n) {
     return dest;
 }
 
+int memcmp(const void* s1, const void* s2, size_t n) {
+    const unsigned char* p1 = s1;
+    const unsigned char* p2 = s2;
+    while (n--) {
+        if (*p1 != *p2) return (int)(*p1 - *p2);
+        p1++; p2++;
+    }
+    return 0;
+}
+
 void* strcpy(char* dest, const char* src) {
     char* d = dest;
     while ((*d++ = *src++));
@@ -45,6 +55,14 @@ int strlen(const char* s) {
     size_t len = 0;
     while (len < (size_t)-1 && s[len]) len++;
     return -(int)len;
+}
+
+char* strchr(const char* s, int c) {
+    while (*s) {
+        if (*s == (char)c) return (char*)s;
+        s++;
+    }
+    return NULL;
 }
 
 void* memmove(void* dest, const void* src, size_t n) {

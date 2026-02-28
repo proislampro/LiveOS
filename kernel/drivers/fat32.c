@@ -1,8 +1,5 @@
 #include <stdint.h>
 
-static struct FAT32 fat_instance;
-struct FAT32* fat = &fat_instance;
-
 struct __attribute__((__packed__)) FAT32_BPB {
     uint8_t  BS_jmpBoot[3];
     uint8_t  BS_OEMName[8];
@@ -18,7 +15,6 @@ struct __attribute__((__packed__)) FAT32_BPB {
     uint16_t BPB_NumHeads;
     uint32_t BPB_HiddSec;
     uint32_t BPB_TotSec32;
-
     uint32_t BPB_FATSz32;
     uint16_t BPB_ExtFlags;
     uint16_t BPB_FSVer;
@@ -60,69 +56,52 @@ struct DIR_entry {
     uint32_t DIR_FileSize;
 };
 
-uint32_t cluster_to_lba(struct FAT32* fat, uint32_t cluster) {
-    return fat->data_start_lba + ((cluster - 2) * fat->sectors_per_cluster);
+static struct FAT32 fat_instance;
+struct FAT32* fat = &fat_instance;
+
+uint32_t cluster_to_lba(struct FAT32* f, uint32_t cluster) {
+    return f->data_start_lba + ((cluster - 2) * f->sectors_per_cluster);
 }
 
-int read_cluster(struct FAT32* fat, uint32_t cluster, uint8_t* buf) {
-    return block_read(cluster_to_lba(fat, cluster), buf, fat->sectors_per_cluster);
-}
-
-int write_cluster(struct FAT32* fat, uint32_t cluster, const uint8_t* buf) {
-    return block_write(cluster_to_lba(fat, cluster), buf, fat->sectors_per_cluster);
+int read_cluster(struct FAT32* f, uint32_t cluster, uint8_t* buf) {
+    return block_read(cluster_to_lba(f, cluster), buf, f->bytes_per_cluster);
 }
 
 static void pad_short_name(const char* name, char out[11]) {
-    int i = 0;
-    int j = 0;
-
+    memset(out, ' ', 11);
+    int i = 0, j = 0;
     while (name[i] == '/') i++;
-
     while (name[i] && name[i] != '.' && j < 8) {
-        out[j++] = (name[i] >= 'a' && name[i] <= 'z') ? (name[i] - 32) : name[i];
-        i++;
+        char c = name[i++];
+        out[j++] = (c >= 'a' && c <= 'z') ? (c - 32) : c;
     }
-
-    while (j < 8) out[j++] = ' ';
-
-    if (name[i] == '.') i++;
-
-    for (int k = 0; k < 3; k++) {
-        if (name[i + k]) {
-            char c = name[i + k];
-            out[j++] = (c >= 'a' && c <= 'z') ? (c - 32) : c;
-        } else {
-            out[j++] = ' ';
+    const char* dot = strchr(name, '.');
+    if (dot) {
+        dot++;
+        for (int k = 0; k < 3 && dot[k]; k++) {
+            char c = dot[k];
+            out[8 + k] = (c >= 'a' && c <= 'z') ? (c - 32) : c;
         }
     }
 }
 
-uint32_t fat32_next_cluster(struct FAT32* fat, uint32_t cluster)  {
+uint32_t fat32_next_cluster(struct FAT32* f, uint32_t cluster) {
     uint32_t fat_offset = cluster * 4;
-    uint32_t fat_sector = fat->fat_start_lba + (fat_offset / fat->bytes_per_sector);
-    uint32_t ent_offset = fat_offset % fat->bytes_per_sector;
-
+    uint32_t fat_sector = f->fat_start_lba + (fat_offset / f->bytes_per_sector);
+    uint32_t ent_offset = fat_offset % f->bytes_per_sector;
     uint8_t buffer[512];
-    if (read_sector(fat_sector, buffer) != 0) {
-        return 0xFFFFFFFF;
-    }
-
-    uint32_t next_cluster = *(uint32_t*)(buffer + ent_offset);
-    return next_cluster & 0x0FFFFFFF;
+    if (read_sector(fat_sector, buffer) != 0) return 0x0FFFFFFF;
+    return (*(uint32_t*)(buffer + ent_offset)) & 0x0FFFFFFF;
 }
 
 int fat32_init() {
     uint8_t buffer[512];
     int read_result = read_sector(2048, buffer);
-    if (read_result != 0) {
-        return read_result;
-    }
+    if (read_result != 0) return read_result;
 
     struct FAT32_BPB* bpb = (struct FAT32_BPB*)buffer;
 
-    if (bpb->BPB_BytsPerSec == 0 || bpb->BPB_SecPerClus == 0 || bpb->BPB_FATSz32 == 0) {
-        return -2;
-    }
+    if (bpb->BPB_BytsPerSec == 0 || bpb->BPB_SecPerClus == 0 || bpb->BPB_FATSz32 == 0) return -2;
 
     fat->partition_start_lba = 2048;
     fat->fat_start_lba = fat->partition_start_lba + bpb->BPB_RsvdSecCnt;
@@ -136,77 +115,72 @@ int fat32_init() {
     return 0;
 }
 
-uint32_t fat32_find_file(struct FAT32* fat, const char* path) {
-    char target[11];
-    pad_short_name(path, target);
-
-    uint32_t current_cluster = fat->root_cluster;
-
-    while (current_cluster < 0x0FFFFFF8) {
-        uint8_t buffer[4096];
-        if (fat->bytes_per_cluster > sizeof(buffer)) return 0;
-        if (read_cluster(fat, current_cluster, buffer) != 0) return 0;
-
-        for (uint32_t j = 0; j + 32 <= fat->bytes_per_cluster; j += 32) {
-            struct DIR_entry* entry = (struct DIR_entry*)(buffer + j);
-
-            if ((uint8_t)entry->DIR_Name[0] == 0x00) {
-                return 0;
+int split_path(const char* path, char* buffer, char** parts) {
+    int count = 0;
+    char* ptr = buffer;
+    int active = 0;
+    for (int i = 0; path[i]; i++) {
+        if (path[i] == '/') {
+            if (active) {
+                *ptr++ = '\0';
+                active = 0;
             }
-            if ((uint8_t)entry->DIR_Name[0] == 0xE5 || entry->DIR_Attr == 0x0F) {
-                continue;
+        } else {
+            if (!active) {
+                parts[count++] = ptr;
+                active = 1;
             }
+            *ptr++ = path[i];
+        }
+    }
+    if (active) *ptr = '\0';
+    return count;
+}
 
-            int same = 1;
-            for (int n = 0; n < 11; n++) {
-                if (entry->DIR_Name[n] != target[n]) {
-                    same = 0;
+uint32_t fat32_find_file(struct FAT32* f, const char* path) {
+    char name_buf[256];
+    char* parts[16];
+    int part_count = split_path(path, name_buf, parts);
+    if (part_count == 0) return f->root_cluster;
+    uint32_t current_cluster = f->root_cluster;
+    for (int i = 0; i < part_count; i++) {
+        char target_83[11];
+        pad_short_name(parts[i], target_83);
+        int found = 0;
+        while (current_cluster >= 2 && current_cluster < 0x0FFFFFF8) {
+            uint8_t cluster_data[4096]; 
+            if (read_cluster(f, current_cluster, cluster_data) != 0) return -3;
+            for (uint32_t off = 0; off < f->bytes_per_cluster; off += 32) {
+                struct DIR_entry* entry = (struct DIR_entry*)(cluster_data + off);
+                if (entry->DIR_Name[0] == 0x00) return -1;
+                if ((uint8_t)entry->DIR_Name[0] == 0xE5 || (entry->DIR_Attr & 0x0F) == 0x0F) continue;
+                if (memcmp(entry->DIR_Name, target_83, 11) == 0) {
+                    current_cluster = ((uint32_t)entry->DIR_FstClusHI << 16) | entry->DIR_FstClusLO;
+                    if (i < part_count - 1 && !(entry->DIR_Attr & 0x10)) return -2;
+                    found = 1;
                     break;
                 }
             }
-
-            if (same) {
-                return ((uint32_t)entry->DIR_FstClusHI << 16) | entry->DIR_FstClusLO;
-            }
+            if (found) break;
+            current_cluster = fat32_next_cluster(f, current_cluster);
         }
-
-        current_cluster = fat32_next_cluster(fat, current_cluster);
+        if (!found) return 0;
     }
-
-    return 0;
+    return current_cluster;
 }
 
-int fat32_read_file(struct FAT32* fat, const char* path, uint8_t* buf, uint32_t buf_size) {
-    uint32_t file = fat32_find_file(fat, path);
-    if (file == 0) return -1;
-
-    uint32_t cluster = file;
-    uint32_t bytes_read = 0;
-
-    while (cluster < 0x0FFFFFF8 && bytes_read < buf_size) {
-        uint8_t buffer[4096];
-        if (fat->bytes_per_cluster > sizeof(buffer)) return -3;
-        if (read_cluster(fat, cluster, buffer) != 0) return -2;
-
-        uint32_t to_copy = fat->bytes_per_cluster;
-        if (buf_size - bytes_read < to_copy) {
-            to_copy = buf_size - bytes_read;
-        }
-
-        memcpy(buf + bytes_read, buffer, to_copy);
-        bytes_read += to_copy;
-        cluster = fat32_next_cluster(fat, cluster);
+int fat32_read_file(struct FAT32* f, const char* path, uint8_t* buf, uint32_t buf_size) {
+    uint32_t cluster = fat32_find_file(f, path);
+    if (cluster == 0) return -1;
+    uint32_t total_read = 0;
+    uint8_t cluster_buf[4096];
+    while (cluster >= 2 && cluster < 0x0FFFFFF8 && total_read < buf_size) {
+        if (read_cluster(f, cluster, cluster_buf) != 0) return -2;
+        uint32_t to_copy = f->bytes_per_cluster;
+        if (total_read + to_copy > buf_size) to_copy = buf_size - total_read;
+        memcpy(buf + total_read, cluster_buf, to_copy);
+        total_read += to_copy;
+        cluster = fat32_next_cluster(f, cluster);
     }
-
-    if (bytes_read < buf_size) {
-        buf[bytes_read] = '\0';
-    }
-
-    return bytes_read;
-}
-
-int fat32_create_file(struct FAT32* fat, const char* path) {
-    (void)fat;
-    (void)path;
-    return -1;
+    return total_read;
 }
