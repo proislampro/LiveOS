@@ -14,11 +14,10 @@ void jump_to_user_mode(uint32_t entry, uint32_t stack) {
         "pushl $0x1B\n"
         "pushl %1\n"
         "iret\n"
-        : 
+        :
         : "r"(stack), "r"(entry)
         : "eax"
     );
-    return;
 }
 
 void kmain(uint32_t magic, uint32_t multiboot_info) {
@@ -26,22 +25,39 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
         for (;;) {}
     }
     if (multiboot_info) {}
+
     fix_cursor();
     changcursor_color(0xaa);
     setdefault_color(0xaf);
     cleanscreen(' ', 0xaf);
     print_string(start_screen);
-    delay(1000);
+    delay(0x10000000);
+
     cleanscreen(' ', 0x0f);
     changcursor_color(0x0f);
-    setdefault_color(0x0f);
-    struct FAT32* fat;
-    if (fat32_init(fat) != 0) {
-        print_string("Failed to initialize FAT32 filesystem.\n");
+
+    if (fat32_init() != 0) {
+        print_string("Unable to init FAT32\n");
+        while (1) {}
     }
-    gdt_install();
+
+    char* hello = (char*)0x300000;
+    if (fat32_read_file(fat, "/hello.txt", (uint8_t*)hello, 511) > 0) {
+        hello[511] = '\0';
+        print_string(hello);
+        print_string("\n");
+    } else {
+        print_string("Unable to read /hello.txt\n");
+    }
+
     init_syscalls();
-    fat32_read_file(fat, "/shell.app", (uint8_t*)0x200000, (uint32_t)0x100000);
-    jump_to_user_mode(0x200000, 0x800000);
+
+    void (*shell_entry)(void) = (void (*)(void))0x200000;
+    if (fat32_read_file(fat, "/shell.bin", (uint8_t*)shell_entry, 8192) > 0) {
+        shell_entry();
+    } else {
+        print_string("Unable to read /shell.bin\n");
+    }
+
     while (1) {}
 }

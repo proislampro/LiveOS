@@ -1,5 +1,8 @@
 #include <stdint.h>
 
+static struct FAT32 fat_instance;
+struct FAT32* fat = &fat_instance;
+
 struct __attribute__((__packed__)) FAT32_BPB {
     uint8_t  BS_jmpBoot[3];
     uint8_t  BS_OEMName[8];
@@ -108,7 +111,7 @@ uint32_t fat32_next_cluster(struct FAT32* fat, uint32_t cluster)  {
     return next_cluster & 0x0FFFFFFF;
 }
 
-int fat32_init(struct FAT32* fat_buffer) {
+int fat32_init() {
     uint8_t buffer[512];
     int read_result = read_sector(2048, buffer);
     if (read_result != 0) {
@@ -121,14 +124,14 @@ int fat32_init(struct FAT32* fat_buffer) {
         return -2;
     }
 
-    fat_buffer->partition_start_lba = 2048;
-    fat_buffer->fat_start_lba = fat_buffer->partition_start_lba + bpb->BPB_RsvdSecCnt;
-    fat_buffer->fat_size_bytes = bpb->BPB_FATSz32 * bpb->BPB_BytsPerSec;
-    fat_buffer->data_start_lba = fat_buffer->partition_start_lba + bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32);
-    fat_buffer->root_cluster = bpb->BPB_RootClus;
-    fat_buffer->bytes_per_sector = bpb->BPB_BytsPerSec;
-    fat_buffer->sectors_per_cluster = bpb->BPB_SecPerClus;
-    fat_buffer->bytes_per_cluster = fat_buffer->bytes_per_sector * fat_buffer->sectors_per_cluster;
+    fat->partition_start_lba = 2048;
+    fat->fat_start_lba = fat->partition_start_lba + bpb->BPB_RsvdSecCnt;
+    fat->fat_size_bytes = bpb->BPB_FATSz32 * bpb->BPB_BytsPerSec;
+    fat->data_start_lba = fat->partition_start_lba + bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32);
+    fat->root_cluster = bpb->BPB_RootClus;
+    fat->bytes_per_sector = bpb->BPB_BytsPerSec;
+    fat->sectors_per_cluster = bpb->BPB_SecPerClus;
+    fat->bytes_per_cluster = fat->bytes_per_sector * fat->sectors_per_cluster;
 
     return 0;
 }

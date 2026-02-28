@@ -10,10 +10,12 @@ CONFIG     = limine.conf
 APPS_DIR   = binairies/apps
 SHELLC     = apps/shell.c
 SHELLB	   = shell.app
+SHELLBIN   = shell.bin
 
 CC = i686-elf-gcc
 AS = nasm
 LD = i686-elf-ld
+OBJCOPY = i686-elf-objcopy
 
 CFLAGS  = -ffreestanding -m32 -O2 -Wall -Wextra -fno-pic -nostdlib
 LDFLAGS = -T linker.ld -nostdlib
@@ -32,6 +34,9 @@ $(BOOTO): $(KERNELE)
 $(SHELLB): $(SHELLC)
 	$(CC) $(CFLAGS) $(SHELLC) -o $(APPS_DIR)/$(SHELLB)
 
+$(SHELLB): $(SHELLO)
+	$(LD) -m elf_i386 -T apps/shell.ld -o $(APPS_DIR)/$(SHELLB) $(SHELLO)
+	$(OBJCOPY) -O binary $(APPS_DIR)/$(SHELLB) $(APPS_DIR)/$(SHELLBIN)
 
 
 
@@ -64,6 +69,7 @@ $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 	mmd -i $(IMAGE_NAME)@@1M ::/apps
 
 	mcopy -i $(IMAGE_NAME)@@1M -s $(APPS_DIR)/$(SHELLB) ::/apps/
+	mcopy -i $(IMAGE_NAME)@@1M -s $(APPS_DIR)/$(SHELLBIN) ::/
 	mcopy -i $(IMAGE_NAME)@@1M -s hello.txt ::/
 
 	# Install Limine BIOS
@@ -80,5 +86,6 @@ run:
 
 clean:
 	rm -f binairies/*.o $(KERNEL) $(IMAGE_NAME)
+	rm -f $(APPS_DIR)/$(SHELLB) $(APPS_DIR)/$(SHELLBIN) $(SHELLO)
 
 .PHONY: all run clean
