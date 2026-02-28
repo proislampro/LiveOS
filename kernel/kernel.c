@@ -25,6 +25,7 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
         while (1) {}
     }
 
+    gdt_install();
     init_syscalls();
 
     print_string("Loading shell from /apps/shell.app...\n");
