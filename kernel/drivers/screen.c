@@ -18,14 +18,6 @@ char getdefault_color() { return default_color; }
 void setdefault_color(char color) { default_color = color; }
 int getpointer() { return vga_index; }
 char* get_app_title() { return app_title; }
-void set_app_title(char* title) {
-    int i = 0;
-    while (i < 79 && title[i] != '\0') {
-        app_title[i] = title[i];
-        i++;
-    }
-    app_title[i] = '\0';
-}
 void hide_cursor() {
     vga_buffer[vga_index] = saved_cell;
 }
@@ -140,5 +132,14 @@ void update_app_title() {
     int start = (80 - title_length) / 2;
     for (int i = 0; i < 80; i++) vga_buffer[i] = (uint16_t)(' ' | (0x1F << 8));
     for (int i = 0; i < title_length; i++) vga_buffer[start + i] = (uint16_t)(app_title[i] | (0x1F << 8));
+}
+void set_app_title(char* title) {
+    int i = 0;
+    while (i < 79 && title[i] != '\0') {
+        app_title[i] = title[i];
+        i++;
+    }
+    app_title[i] = '\0';
+    update_app_title();
 }
 void init_screen() { cleanscreen(' ', default_color); fix_cursor(); update_app_title(); }

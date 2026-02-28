@@ -64,7 +64,9 @@ uint32_t cluster_to_lba(struct FAT32* f, uint32_t cluster) {
 }
 
 int read_cluster(struct FAT32* f, uint32_t cluster, uint8_t* buf) {
-    return block_read(cluster_to_lba(f, cluster), buf, f->bytes_per_cluster);
+    for (uint8_t i = 0; i < f->sectors_per_cluster; i++) 
+        if (read_sector(cluster_to_lba(f, cluster) + i, buf + i * f->bytes_per_sector) != 0) return -1;
+    return 0;
 }
 
 static void pad_short_name(const char* name, char out[11]) {
@@ -91,7 +93,10 @@ uint32_t fat32_next_cluster(struct FAT32* f, uint32_t cluster) {
     uint32_t ent_offset = fat_offset % f->bytes_per_sector;
     uint8_t buffer[512];
     if (read_sector(fat_sector, buffer) != 0) return 0x0FFFFFFF;
-    return (*(uint32_t*)(buffer + ent_offset)) & 0x0FFFFFFF;
+
+    uint32_t next = (*(uint32_t*)(buffer + ent_offset)) & 0x0FFFFFFF;
+    if (next >= 0x0FFFFFF8) return 0;  // End of cluster chain
+    return next;
 }
 
 int fat32_init() {
@@ -142,45 +147,69 @@ uint32_t fat32_find_file(struct FAT32* f, const char* path) {
     char* parts[16];
     int part_count = split_path(path, name_buf, parts);
     if (part_count == 0) return f->root_cluster;
+
     uint32_t current_cluster = f->root_cluster;
+
     for (int i = 0; i < part_count; i++) {
         char target_83[11];
         pad_short_name(parts[i], target_83);
         int found = 0;
+
         while (current_cluster >= 2 && current_cluster < 0x0FFFFFF8) {
-            uint8_t cluster_data[4096]; 
+            uint32_t cluster_size = f->bytes_per_cluster;
+            uint8_t cluster_data[4096]; // or dynamically allocate cluster_size
             if (read_cluster(f, current_cluster, cluster_data) != 0) return -3;
-            for (uint32_t off = 0; off < f->bytes_per_cluster; off += 32) {
+
+            for (uint32_t off = 0; off < cluster_size; off += 32) {
                 struct DIR_entry* entry = (struct DIR_entry*)(cluster_data + off);
-                if (entry->DIR_Name[0] == 0x00) return -1;
-                if ((uint8_t)entry->DIR_Name[0] == 0xE5 || (entry->DIR_Attr & 0x0F) == 0x0F) continue;
+
+                if (entry->DIR_Name[0] == 0x00) break;  // end of directory entries
+
+                if ((uint8_t)entry->DIR_Name[0] == 0xE5 || (entry->DIR_Attr & 0x0F) == 0x0F)
+                    continue; // deleted or LFN
+
                 if (memcmp(entry->DIR_Name, target_83, 11) == 0) {
                     current_cluster = ((uint32_t)entry->DIR_FstClusHI << 16) | entry->DIR_FstClusLO;
-                    if (i < part_count - 1 && !(entry->DIR_Attr & 0x10)) return -2;
+                    if (i < part_count - 1 && !(entry->DIR_Attr & 0x10)) return -2; // not a directory
                     found = 1;
                     break;
                 }
             }
+
             if (found) break;
-            current_cluster = fat32_next_cluster(f, current_cluster);
+
+            uint32_t next = fat32_next_cluster(f, current_cluster);
+            if (next == 0 || next >= 0x0FFFFFF8) break;
+            current_cluster = next;
         }
-        if (!found) return 0;
+
+        if (!found) return 0; // not found
     }
+
     return current_cluster;
 }
 
 int fat32_read_file(struct FAT32* f, const char* path, uint8_t* buf, uint32_t buf_size) {
-    uint32_t cluster = fat32_find_file(f, path);
-    if (cluster == 0) return -1;
+    int32_t cluster = fat32_find_file(f, path);
+    if (cluster <= 0) return cluster; // propagate error codes
+
     uint32_t total_read = 0;
-    uint8_t cluster_buf[4096];
+    static uint8_t cluster_buf[4096]; // safe on .bss
+
     while (cluster >= 2 && cluster < 0x0FFFFFF8 && total_read < buf_size) {
-        if (read_cluster(f, cluster, cluster_buf) != 0) return -2;
+        if (read_cluster(f, cluster, cluster_buf) != 0) return -3;
+
         uint32_t to_copy = f->bytes_per_cluster;
-        if (total_read + to_copy > buf_size) to_copy = buf_size - total_read;
+        if (total_read + to_copy > buf_size)
+            to_copy = buf_size - total_read;
+
         memcpy(buf + total_read, cluster_buf, to_copy);
         total_read += to_copy;
-        cluster = fat32_next_cluster(f, cluster);
+
+        uint32_t next = fat32_next_cluster(f, cluster);
+        if (next == 0 || next >= 0x0FFFFFF8) break;
+        cluster = next;
     }
+
     return total_read;
 }

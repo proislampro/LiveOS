@@ -1,30 +1,11 @@
 #include <stdint.h>
 #include "dependencies.c"
 
-void jump_to_user_mode(uint32_t entry, uint32_t stack) {
-    asm volatile (
-        "movl $0x23, %%eax\n"
-        "mov %%ax, %%ds\n"
-        "mov %%ax, %%es\n"
-        "mov %%ax, %%fs\n"
-        "mov %%ax, %%gs\n"
-        "pushl $0x23\n"
-        "pushl %0\n"
-        "pushfl\n"
-        "pushl $0x1B\n"
-        "pushl %1\n"
-        "iret\n"
-        :
-        : "r"(stack), "r"(entry)
-        : "eax"
-    );
-}
+static uint8_t elf_buffer[8192];
+static uint8_t user_stack[4096];
 
 void kmain(uint32_t magic, uint32_t multiboot_info) {
-    if (magic != 0x2BADB002) {
-        for (;;) {}
-    }
-    if (multiboot_info) {}
+    if (magic != 0x2BADB002) { for (;;) {} }
 
     fix_cursor();
     changcursor_color(0xaa);
@@ -44,12 +25,26 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
 
     init_syscalls();
 
-    void (*shell_entry)(int count, char** argv) = (void (*)(int count, char** argv))0x200000;
-    int file_size = fat32_read_file(fat, "/apps/shell.app", (uint8_t*)shell_entry, 8192);
+    print_string("Loading shell from /apps/shell.app...\n");
+    delay(500);
+
+    int file_size = fat32_read_file(fat, "/apps/shell.app", elf_buffer, sizeof(elf_buffer));
+
     if (file_size > 0) {
-        print_string("Launching shell...\n");
-        jump_to_user_mode(0x200000, 0x300000);
-        shell_entry(1, (char**)"/system/");
+        print_string("File loaded Successfully\n");
+        delay(500);
+
+        uint32_t entry = load_elf(elf_buffer, file_size);
+        if (entry) {
+            print_string("Launching shell...\n");
+            delay(500);
+            cleanscreen(' ', 0x0f);
+            set_app_title("/apps/shell.app");
+            delay(500);
+            jump_to_user_mode(entry, (uint32_t)(user_stack + sizeof(user_stack)));
+        } else {
+            print_string("Failed to load ELF from /apps/shell.app\n");
+        }
     } else if (file_size == -1) {
         print_string("/apps/shell.app not found\n");
     } else if (file_size == -2) {

@@ -9,6 +9,7 @@ CONFIG     = limine.conf
 
 APPS_DIR   = binairies/apps
 SHELLC     = apps/shell.c
+SHELLO     = shell.o
 SHELLB	   = shell.app
 
 CC = i686-elf-gcc
@@ -30,7 +31,9 @@ $(BOOTO): $(KERNELE)
 	$(AS) -f elf32 $(KERNELE) -o $(BOOTO)
 
 $(SHELLB): $(SHELLC)
-	$(CC) $(CFLAGS) $(SHELLC) -o $(APPS_DIR)/$(SHELLB)
+	$(CC) $(CFLAGS) -c $(SHELLC) -o $(APPS_DIR)/$(SHELLO)
+	$(LD) $(LDFLAGS) apps.ld -o $(APPS_DIR)/$(SHELLB) $(APPS_DIR)/$(SHELLO)
+
 
 
 
