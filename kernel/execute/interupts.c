@@ -31,10 +31,16 @@ typedef struct {
 
 void syscall_dispatcher(registers_t* regs) {
     switch (regs->eax) {
-        case 1:
-            print_string((char*)regs->ebx);
-            break;
-            
+        switch (regs->ebx) {
+            case 1:
+                print_string((char*)regs->ecx);
+                break;
+            case 2:
+                setdefault_color((uint8_t)regs->ecx);
+                break;
+            default:
+                break;
+        }
         default:
             break;
     }

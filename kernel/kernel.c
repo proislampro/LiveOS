@@ -28,21 +28,16 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
     init_syscalls();
 
     print_string("Loading shell from /apps/shell.app...\n");
-    delay(500);
-
     int file_size = fat32_read_file(fat, "/apps/shell.app", elf_buffer, sizeof(elf_buffer));
-
     if (file_size > 0) {
         print_string("File loaded Successfully\n");
-        delay(500);
-
         uint32_t entry = load_elf(elf_buffer, file_size);
         if (entry) {
             print_string("Launching shell...\n");
             delay(500);
             cleanscreen(' ', 0x0f);
             set_app_title("/apps/shell.app");
-            delay(500);
+            setdefault_color(0x0f);
             jump_to_user_mode(entry, (uint32_t)(user_stack + USER_STACK_SIZE));
 
         } else {
