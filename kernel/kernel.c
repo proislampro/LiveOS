@@ -42,9 +42,7 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
             delay(500);
             cleanscreen(' ', 0x0f);
             set_app_title("/apps/shell.app");
-            delay(500);
             jump_to_user_mode(entry, (uint32_t)(user_stack + USER_STACK_SIZE));
-
         } else {
             print_string("Failed to load ELF from /apps/shell.app\n");
         }
