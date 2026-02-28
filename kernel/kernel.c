@@ -2,7 +2,6 @@
 #include "dependencies.c"
 
 static uint8_t elf_buffer[8192];
-#define USER_STACK_BASE 0x500000
 #define USER_STACK_SIZE 0x10000
 static uint8_t user_stack[USER_STACK_SIZE];
 
@@ -25,6 +24,7 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
         while (1) {}
     }
 
+    gdt_install();
     init_syscalls();
 
     print_string("Loading shell from /apps/shell.app...\n");
@@ -43,7 +43,7 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
             cleanscreen(' ', 0x0f);
             set_app_title("/apps/shell.app");
             delay(500);
-            jump_to_user_mode(entry, USER_STACK_BASE + USER_STACK_SIZE);
+            jump_to_user_mode(entry, (uint32_t)(user_stack + USER_STACK_SIZE));
 
         } else {
             print_string("Failed to load ELF from /apps/shell.app\n");
