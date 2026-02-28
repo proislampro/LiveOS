@@ -1,43 +1,23 @@
-/* Linker script for applications */
-
-MEMORY
-{
-    FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 256K
-    RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
-}
+ENTRY(main)
 
 SECTIONS
 {
-    .text :
+    . = 0x400000;
+
+    .text ALIGN(0x1000) :
     {
         *(.text*)
         *(.rodata*)
-    } > FLASH
+    }
 
-    .data :
+    .data ALIGN(0x1000) :
     {
         *(.data*)
-    } > RAM AT > FLASH
+    }
 
-    .bss :
+    .bss ALIGN(0x1000) :
     {
-        *(.bss*)
         *(COMMON)
-    } > RAM
-
-    .heap :
-    {
-        . = ALIGN(8);
-        _heap_start = .;
-        . += 8K;
-        _heap_end = .;
-    } > RAM
-
-    .stack :
-    {
-        . = ALIGN(8);
-        _stack_end = .;
-        . += 8K;
-        _stack_start = .;
-    } > RAM
+        *(.bss*)
+    }
 }

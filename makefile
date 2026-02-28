@@ -18,6 +18,7 @@ LD = i686-elf-ld
 
 CFLAGS  = -ffreestanding -m32 -O2 -Wall -Wextra -fno-pic -nostdlib
 LDFLAGS = -T linker.ld -nostdlib
+APP_LDFLAGS = -T apps.ld -nostdlib
 
 all: clean $(IMAGE_NAME)
 
@@ -32,7 +33,7 @@ $(BOOTO): $(KERNELE)
 
 $(SHELLB): $(SHELLC)
 	$(CC) $(CFLAGS) -c $(SHELLC) -o $(APPS_DIR)/$(SHELLO)
-	$(LD) $(LDFLAGS) apps.ld -o $(APPS_DIR)/$(SHELLB) $(APPS_DIR)/$(SHELLO)
+	$(LD) $(APP_LDFLAGS) -o $(APPS_DIR)/$(SHELLB) $(APPS_DIR)/$(SHELLO)
 
 
 
