@@ -47,6 +47,8 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
     void (*shell_entry)(int count, char** argv) = (void (*)(int count, char** argv))0x200000;
     int file_size = fat32_read_file(fat, "/apps/shell.app", (uint8_t*)shell_entry, 8192);
     if (file_size > 0) {
+        print_string("Launching shell...\n");
+        jump_to_user_mode(0x200000, 0x300000);
         shell_entry(1, (char**)"/system/");
     } else if (file_size == -1) {
         print_string("/apps/shell.app not found\n");
