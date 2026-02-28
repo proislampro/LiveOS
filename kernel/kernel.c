@@ -27,9 +27,9 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
     if (multiboot_info) {}
 
     fix_cursor();
-    cleanscreen(' ', 0xa0);
     changcursor_color(0xaa);
     setdefault_color(0xaf);
+    cleanscreen(' ', 0xaf);
     print_string(start_screen);
     delay(0x10000000);
 
