@@ -60,3 +60,4 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
 
     while (1) {}
 }
+
