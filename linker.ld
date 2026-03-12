@@ -5,10 +5,10 @@ SECTIONS
     /* Start at 1MB (0x100000) */
     . = 0x100000;
 
-    /* Limine / Multiboot header at the very start */
-    .multiboot ALIGN(0x1000) : 
+    /* Limine / Multiboot2 header at the very start */
+    .multiboot2 ALIGN(0x1000) : 
     {
-        KEEP(*(.multiboot))
+        KEEP(*(.multiboot2))
     }
 
     /* Kernel text (code) */
