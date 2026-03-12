@@ -40,7 +40,7 @@ $(SHELLB): $(SHELLC)
 
 
 # =========================
-# Disk Image (BIOS + MBR)
+# Disk Image (UEFI + GPT)
 # =========================
 $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 	# Create empty 64MB disk

@@ -2,7 +2,7 @@ section .multiboot2
 align 8
 multiboot2_header:
     dd 0xE85250D6                                           ; magic
-    dd 0                                                    ; arch: i386 (protected mode)
+    dd 0                                                    ; arch: i386 (long mode handoff)
     dd multiboot2_header_end - multiboot2_header            ; header length
     dd -(0xE85250D6 + 0 + (multiboot2_header_end - multiboot2_header)) ; checksum
 
