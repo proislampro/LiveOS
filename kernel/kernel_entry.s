@@ -1,18 +1,38 @@
-section .multiboot
-align 4
-    dd 0x1BADB002
-    dd 0x00000003
-    dd -(0x1BADB002 + 0x00000003)
+section .multiboot2
+align 8
+multiboot2_header:
+    dd 0xE85250D6                                           ; magic
+    dd 0                                                    ; arch: i386 (protected mode)
+    dd multiboot2_header_end - multiboot2_header            ; header length
+    dd -(0xE85250D6 + 0 + (multiboot2_header_end - multiboot2_header)) ; checksum
+
+    ; Framebuffer tag (request 1024x768 32bpp — Limine/GRUB will try to match)
+    align 8
+    dw 5                ; type: framebuffer
+    dw 0                ; flags
+    dd 20               ; size
+    dd 1024             ; width
+    dd 768              ; height
+    dd 32               ; depth
+
+    ; End tag
+    align 8
+    dw 0                ; type: end
+    dw 0                ; flags
+    dd 8                ; size
+multiboot2_header_end:
 
 section .text
 global _start
 extern kmain
 
 _start:
-    mov esp, stack_top
-    
-    push ebx
-    push eax
+    mov rsp, stack_top
+
+    push 0              ; align stack to 16 bytes (rbx hi)
+    push rbx            ; multiboot2 info struct pointer
+    push 0              ; align (rax hi)
+    push rax            ; multiboot2 magic (should be 0x36d76289)
 
     call kmain
 

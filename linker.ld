@@ -2,31 +2,45 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 1M;
+    /* Start at 1MB (0x100000) */
+    . = 0x100000;
 
-    .multiboot ALIGN(4) :
+    /* Limine / Multiboot header at the very start */
+    .multiboot ALIGN(0x1000) : 
     {
         KEEP(*(.multiboot))
     }
 
-    .text ALIGN(4) :
+    /* Kernel text (code) */
+    .text ALIGN(0x1000) :
     {
         *(.text*)
     }
 
-    .rodata ALIGN(4) :
+    /* Read-only data */
+    .rodata ALIGN(0x1000) :
     {
         *(.rodata*)
     }
 
-    .data ALIGN(4) :
+    /* Initialized data */
+    .data ALIGN(0x1000) :
     {
         *(.data*)
     }
 
-    .bss ALIGN(4) :
+    /* Uninitialized data / BSS */
+    .bss ALIGN(0x1000) :
     {
         *(COMMON)
         *(.bss*)
+    }
+
+    /* Stack (optional) */
+    .stack ALIGN(0x1000) :
+    {
+        stack_start = .;
+        . += 0x4000; /* 16 KB stack */
+        stack_end = .;
     }
 }

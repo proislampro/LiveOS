@@ -30,7 +30,7 @@ void changcursor(char cha) { hide_cursor(); cursor = cha; show_cursor(); }
 void changcursor_color(char color) { hide_cursor(); cursor_color = color; show_cursor(); }
 void fix_cursor() { outb(0x3D4, 0x0A); outb(0x3D5, 0x20); show_cursor(); }
 void movpointer_to(int pos) {
-    if (pos < VGA_WIDTH || pos >= VGA_SIZE - VGA_WIDTH) return;
+    if (pos < VGA_WIDTH || pos >= VGA_SIZE) return;
     hide_cursor();
     vga_index = (uint16_t)pos;
     show_cursor();
@@ -38,15 +38,15 @@ void movpointer_to(int pos) {
 void movpointer(int offset) {
     hide_cursor();
     int new_pos = (int)vga_index + offset;
-    if (new_pos < VGA_WIDTH) vga_index = VGA_WIDTH;
-    else if (new_pos >= VGA_SIZE - VGA_WIDTH) vga_index = VGA_SIZE - VGA_WIDTH - 1;
+    if (new_pos < 0) vga_index = 0;
+    else if (new_pos >= VGA_SIZE) vga_index = VGA_SIZE;
     else vga_index = (uint16_t)new_pos;
     show_cursor();
 }
 void cleanscreen(char character, char color) {
     uint16_t blank = ((uint16_t)color << 8) | (uint8_t)character;
-    for (int i = VGA_WIDTH; i < VGA_SIZE - VGA_WIDTH; i++) vga_buffer[i] = blank;
-    vga_index = VGA_WIDTH;
+    for (int i = 0; i < VGA_SIZE; i++) vga_buffer[i] = blank;
+    vga_index = 0;
     print_log_pointer = 0;
     saved_cell = blank;
     show_cursor();
@@ -54,34 +54,34 @@ void cleanscreen(char character, char color) {
 void scroll(int lines) {
     if (lines <= 0) return;
     hide_cursor();
-    if (lines >= VGA_HEIGHT - 2) {
+    if (lines >= VGA_HEIGHT) {
         cleanscreen(' ', default_color);
         return;
     }
-    int move_limit = (VGA_HEIGHT - 2 - lines) * VGA_WIDTH;
+    int move_limit = (VGA_HEIGHT - lines) * VGA_WIDTH;
     for (int i = 0; i < move_limit; i++) vga_buffer[i + VGA_WIDTH] = vga_buffer[i + (lines + 1) * VGA_WIDTH];
     uint16_t blank = ((uint16_t)default_color << 8) | ' ';
-    for (int i = move_limit + VGA_WIDTH; i < VGA_SIZE - VGA_WIDTH; i++) vga_buffer[i] = blank;
+    for (int i = move_limit; i < VGA_SIZE; i++) vga_buffer[i] = blank;
     int scroll_offset = lines * VGA_WIDTH;
     int new_pointer = 0;
     for (int i = 0; i < print_log_pointer; i++) {
         if (print_log[i] >= scroll_offset) print_log[new_pointer++] = print_log[i] - scroll_offset;
     }
     print_log_pointer = new_pointer;
-    vga_index = (VGA_HEIGHT - 2) * VGA_WIDTH;
+    vga_index = VGA_HEIGHT * VGA_WIDTH;
     show_cursor();
 }
 void printchar_in(char c, uint8_t color, uint16_t position) {
-    if (position >= VGA_WIDTH && position < VGA_SIZE - VGA_WIDTH) vga_buffer[position] = ((uint16_t)color << 8) | (uint8_t)c;
+    if (position >= 0 && position < VGA_SIZE) vga_buffer[position] = ((uint16_t)color << 8) | (uint8_t)c;
 }
 static void printchar_raw(char c, uint8_t color) {
     if (c == '\n') {
         if (print_log_pointer < MAX_PRINT_LOG) print_log[print_log_pointer++] = vga_index;
         vga_index = ((vga_index / VGA_WIDTH) + 1) * VGA_WIDTH;
-        if (vga_index >= VGA_SIZE - VGA_WIDTH) scroll(1);
+        if (vga_index >= VGA_SIZE) scroll(1);
     }
     else if (c == '\b') {
-        if (vga_index == VGA_WIDTH) return;
+        if (vga_index == 0) return;
         if (print_log_pointer > 0 && vga_index % 80 == 0) {
             vga_index = print_log[print_log_pointer-1];
             print_log_pointer--;
@@ -96,12 +96,12 @@ static void printchar_raw(char c, uint8_t color) {
         vga_index += spaces;
     }
     else printchar_in(c, color, vga_index++);
-    while (vga_index >= VGA_SIZE - VGA_WIDTH) { scroll(1); vga_index -= VGA_WIDTH; }
+    while (vga_index >= VGA_SIZE) { scroll(1); vga_index -= VGA_WIDTH; }
 }
 void printchar(char c, uint8_t color) {
     hide_cursor();
     printchar_raw(c, color);
-    if (getpointer() >= VGA_SIZE - VGA_WIDTH) scroll(1);
+    if (getpointer() >= VGA_SIZE) scroll(1);
     show_cursor();
 }
 uint8_t hex_to_int(char c) { if (c >= '0' && c <= '9') return c - '0'; c |= 0x20; if (c >= 'a' && c <= 'f') return c - 'a' + 10; return 0; }
@@ -126,20 +126,4 @@ void print_string_inversed(char* string) {
     for (uint32_t i = 0; string[i] != '\0'; i++) printchar_raw(string[i], current_color);
     show_cursor();
 }
-void update_app_title() {
-    int title_length = 0;
-    while (app_title[title_length] != '\0' && title_length < 80) title_length++;
-    int start = (80 - title_length) / 2;
-    for (int i = 0; i < 80; i++) vga_buffer[i] = (uint16_t)(' ' | (0x1F << 8));
-    for (int i = 0; i < title_length; i++) vga_buffer[start + i] = (uint16_t)(app_title[i] | (0x1F << 8));
-}
-void set_app_title(char* title) {
-    int i = 0;
-    while (i < 79 && title[i] != '\0') {
-        app_title[i] = title[i];
-        i++;
-    }
-    app_title[i] = '\0';
-    update_app_title();
-}
-void init_screen() { cleanscreen(' ', default_color); fix_cursor(); update_app_title(); }
+void init_screen() { cleanscreen(' ', default_color); fix_cursor();}

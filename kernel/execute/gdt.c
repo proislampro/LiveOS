@@ -1,31 +1,47 @@
 #include <stdint.h>
 
-#define GDT_ENTRIES 6
+#define GDT_ENTRIES 7
 
-// GDT entry structure
+// 64-bit GDT entry
 struct gdt_entry {
-    uint16_t limit_low;     
-    uint16_t base_low;      
-    uint8_t  base_middle;   
-    uint8_t  access;        
-    uint8_t  granularity;   
-    uint8_t  base_high;     
+    uint16_t limit_low;
+    uint16_t base_low;
+    uint8_t  base_middle;
+    uint8_t  access;
+    uint8_t  granularity;
+    uint8_t  base_high;
 } __attribute__((packed));
 
 struct gdt_ptr {
     uint16_t limit;
-    uint32_t base;
+    uint64_t base;
 } __attribute__((packed));
 
+// 64-bit TSS
 struct tss_entry {
-    uint32_t prev_tss;
-    uint32_t esp0;
-    uint32_t ss0;
-    uint32_t reserved[23];
+    uint32_t reserved0;
+
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+
+    uint64_t reserved1;
+
+    uint64_t ist1;
+    uint64_t ist2;
+    uint64_t ist3;
+    uint64_t ist4;
+    uint64_t ist5;
+    uint64_t ist6;
+    uint64_t ist7;
+
+    uint64_t reserved2;
+    uint16_t reserved3;
+    uint16_t io_map_base;
 } __attribute__((packed));
 
 struct gdt_entry gdt[GDT_ENTRIES];
-struct gdt_ptr   gp;
+struct gdt_ptr gp;
 struct tss_entry tss;
 
 // Helper to set GDT entry
@@ -40,36 +56,46 @@ void set_gdt_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8
     gdt[num].access      = access;
 }
 
-// Setup TSS descriptor
-void write_tss(int num, uint32_t ss0, uint32_t esp0) {
-    uint32_t base = (uint32_t)&tss;
+// Setup 64-bit TSS descriptor
+void write_tss(int num, uint64_t rsp0) {
+
+    uint64_t base = (uint64_t)&tss;
     uint32_t limit = sizeof(struct tss_entry);
 
-    tss.esp0 = esp0;
-    tss.ss0  = ss0;
+    tss.rsp0 = rsp0;
+    tss.io_map_base = sizeof(struct tss_entry);
 
-    set_gdt_entry(num, base, limit, 0x89, 0x00); // 0x89 = present + type 9 (32-bit TSS)
+    set_gdt_entry(num, base & 0xFFFFFFFF, limit, 0x89, 0x00);
+
+    // Upper 32 bits of base
+    *((uint32_t*)&gdt[num + 1]) = (base >> 32);
 }
 
 // Load GDT
 void gdt_install() {
+
     gp.limit = (sizeof(struct gdt_entry) * GDT_ENTRIES) - 1;
-    gp.base  = (uint32_t)&gdt;
+    gp.base  = (uint64_t)&gdt;
 
-    // NULL descriptor
-    set_gdt_entry(0, 0, 0, 0, 0);
-    // Kernel code 0x08
-    set_gdt_entry(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);
-    // Kernel data 0x10
-    set_gdt_entry(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
-    // User code 0x1B
-    set_gdt_entry(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);
-    // User data 0x23
-    set_gdt_entry(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);
-    // TSS descriptor 0x28
-    write_tss(5, 0x10, 0x9FC00); // kernel stack at 0x9FC00
+    // NULL
+    set_gdt_entry(0,0,0,0,0);
 
-    // Load the GDT
+    // Kernel code
+    set_gdt_entry(1,0,0,0x9A,0xA0);
+
+    // Kernel data
+    set_gdt_entry(2,0,0,0x92,0xA0);
+
+    // User code
+    set_gdt_entry(3,0,0,0xFA,0xA0);
+
+    // User data
+    set_gdt_entry(4,0,0,0xF2,0xA0);
+
+    // TSS
+    write_tss(5, 0x9FC00);
+
+    // Load GDT
     asm volatile("lgdt %0" : : "m"(gp));
 
     // Reload segments
@@ -77,14 +103,18 @@ void gdt_install() {
         "mov $0x10, %%ax\n"
         "mov %%ax, %%ds\n"
         "mov %%ax, %%es\n"
+        "mov %%ax, %%ss\n"
         "mov %%ax, %%fs\n"
         "mov %%ax, %%gs\n"
-        "mov %%ax, %%ss\n"
-        "jmp $0x08, $next\n"
-        "next:\n"
+
+        "pushq $0x08\n"
+        "lea 1f(%%rip), %%rax\n"
+        "push %%rax\n"
+        "lretq\n"
+        "1:\n"
         :
         :
-        : "ax"
+        : "rax","ax"
     );
 
     // Load TSS

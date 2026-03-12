@@ -12,11 +12,11 @@ SHELLC     = apps/shell.c
 SHELLO     = shell.o
 SHELLB	   = shell.app
 
-CC = i686-elf-gcc
+CC = gcc
 AS = nasm
-LD = i686-elf-ld
+LD = ld
 
-CFLAGS  = -ffreestanding -m32 -O2 -Wall -Wextra -fno-pic -nostdlib
+CFLAGS  = -ffreestanding -m64 -O2 -Wall -Wextra -fno-pic -nostdlib
 LDFLAGS = -T linker.ld -nostdlib
 APP_LDFLAGS = -T apps.ld -nostdlib
 
@@ -29,7 +29,7 @@ $(KERNELO): $(KERNELC)
 	$(CC) $(CFLAGS) -c $(KERNELC) -o $(KERNELO)
 
 $(BOOTO): $(KERNELE)
-	$(AS) -f elf32 $(KERNELE) -o $(BOOTO)
+	$(AS) -f elf64 $(KERNELE) -o $(BOOTO)
 
 $(SHELLB): $(SHELLC)
 	$(CC) $(CFLAGS) -c $(SHELLC) -o $(APPS_DIR)/$(SHELLO)
@@ -46,41 +46,44 @@ $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 	# Create empty 64MB disk
 	truncate -s 64M $(IMAGE_NAME)
 
-	# Create MBR + FAT32 partition
+	# Create GPT + EFI System Partition
 	parted -s $(IMAGE_NAME) \
-		mklabel msdos \
-		mkpart primary fat32 1MiB 100% \
-		set 1 boot on
+		mklabel gpt \
+		mkpart ESP fat32 1MiB 100% \
+		set 1 esp on
 
-	# Format partition
+	# Format partition as FAT32
 	mformat -i $(IMAGE_NAME)@@1M -F
 
-	# Create /boot directory
-	mmd -i $(IMAGE_NAME)@@1M ::/boot
+	# Create EFI boot path (required by UEFI spec)
+	mmd -i $(IMAGE_NAME)@@1M ::/EFI
+	mmd -i $(IMAGE_NAME)@@1M ::/EFI/BOOT
 
-	# Copy required files
+	# Copy Limine EFI loader to the standard UEFI path
+	mcopy -i $(IMAGE_NAME)@@1M \
+		$(LIMINE_DIR)/BOOTX64.EFI \
+		::/EFI/BOOT/
+
+	# Copy kernel and config (Limine looks for these at the root or /boot/)
+	mmd -i $(IMAGE_NAME)@@1M ::/boot
 	mcopy -i $(IMAGE_NAME)@@1M \
 		$(KERNEL) \
 		$(CONFIG) \
-		$(LIMINE_DIR)/limine-bios.sys \
+		$(LIMINE_DIR)/limine-uefi-cd.bin \
 		::/boot/
-	
-	mmd -i $(IMAGE_NAME)@@1M ::/apps
 
+	# Apps
+	mmd -i $(IMAGE_NAME)@@1M ::/apps
 	mcopy -i $(IMAGE_NAME)@@1M -s $(APPS_DIR)/$(SHELLB) ::/apps/
 	mcopy -i $(IMAGE_NAME)@@1M -s hello.txt ::/
 
-	# Install Limine BIOS
-	$(LIMINE_DIR)/limine bios-install $(IMAGE_NAME)
+	# No limine install step needed for UEFI — the EFI binary is self-sufficient
 
-
-# =========================
-# Utilities
-# =========================
 run:
-	qemu-system-i386 \
-	-drive format=raw,file=$(IMAGE_NAME) \
-	-m 512M
+	qemu-system-x86_64 \
+		-bios /usr/share/ovmf/OVMF.fd \
+		-drive format=raw,file=$(IMAGE_NAME) \
+		-m 512M
 
 clean:
 	rm -f binairies/*.o $(KERNEL) $(IMAGE_NAME)

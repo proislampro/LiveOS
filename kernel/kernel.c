@@ -5,8 +5,10 @@ static uint8_t elf_buffer[8192];
 #define USER_STACK_SIZE 0x10000
 static uint8_t user_stack[USER_STACK_SIZE];
 
-void kmain(uint32_t magic, uint32_t multiboot_info) {
-    if (magic != 0x2BADB002) { for (;;) {} }
+void kmain(uint64_t magic, uint64_t multiboot_info) {
+    if (magic != 0x36d76289) { for(;;) {} }
+
+    struct multiboot2_info *mb = (struct multiboot2_info *)multiboot_info;
 
     fix_cursor();
     changcursor_color(0xaa);
@@ -27,16 +29,11 @@ void kmain(uint32_t magic, uint32_t multiboot_info) {
     gdt_install();
     init_syscalls();
 
-    print_string("Loading shell from /apps/shell.app...\n");
     int file_size = fat32_read_file(fat, "/apps/shell.app", elf_buffer, sizeof(elf_buffer));
     if (file_size > 0) {
-        print_string("File loaded Successfully\n");
         uint32_t entry = load_elf(elf_buffer, file_size);
         if (entry) {
-            print_string("Launching shell...\n");
-            delay(500);
             cleanscreen(' ', 0x0f);
-            set_app_title("/apps/shell.app");
             setdefault_color(0x0f);
             jump_to_user_mode(entry, (uint32_t)(user_stack + USER_STACK_SIZE));
 
