@@ -40,7 +40,7 @@ $(SHELLB): $(SHELLC)
 
 
 # =========================
-# Disk Image (BIOS + MBR)
+# Disk Image (UEFI + GPT)
 # =========================
 $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 	# Create empty 64MB disk
@@ -81,7 +81,8 @@ $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 
 run:
 	qemu-system-x86_64 \
-		-bios /usr/share/ovmf/OVMF.fd \
+		-machine q35 \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/ovmf/OVMF.fd \
 		-drive format=raw,file=$(IMAGE_NAME) \
 		-m 512M
 
