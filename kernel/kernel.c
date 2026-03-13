@@ -5,24 +5,18 @@ static uint8_t elf_buffer[8192];
 #define USER_STACK_SIZE 0x10000
 static uint8_t user_stack[USER_STACK_SIZE];
 
+struct multiboot_tag {
+    uint32_t type;
+    uint32_t size;
+};
+
 void kmain(uint64_t magic, uint64_t multiboot_info) {
     if (magic != 0x36d76289) { for(;;) {} }
 
     struct multiboot2_info *mb = (struct multiboot2_info *)multiboot_info;
 
-    fix_cursor();
-    changcursor_color(0xaa);
-    setdefault_color(0xaf);
-    cleanscreen(' ', 0xaf);
-    print_string(start_screen);
-    delay(500);
-
-    cleanscreen(' ', 0x0f);
-    changcursor_color(0x0f);
-    setdefault_color(0x0f);
-
     if (fat32_init() != 0) {
-        print_string("Unable to init FAT32\n");
+        // print_string("Unable to init FAT32\n");
         while (1) {}
     }
 
@@ -33,21 +27,19 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
     if (file_size > 0) {
         uint32_t entry = load_elf(elf_buffer, file_size);
         if (entry) {
-            cleanscreen(' ', 0x0f);
-            setdefault_color(0x0f);
             jump_to_user_mode(entry, (uint32_t)(user_stack + USER_STACK_SIZE));
 
         } else {
-            print_string("Failed to load ELF from /apps/shell.app\n");
+            // print_string("Failed to load ELF from /apps/shell.app\n");
         }
     } else if (file_size == -1) {
-        print_string("/apps/shell.app not found\n");
+        // print_string("/apps/shell.app not found\n");
     } else if (file_size == -2) {
-        print_string("/apps/shell.app is too large\n");
+        // print_string("/apps/shell.app is too large\n");
     } else if (file_size == -3) {
-        print_string("/apps/shell.app unable to read\n");
+        // print_string("/apps/shell.app unable to read\n");
     } else {
-        print_string("Unknown error loading /apps/shell.app\n");
+        // print_string("Unknown error loading /apps/shell.app\n");
     }
 
     while (1) {}

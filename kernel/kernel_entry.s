@@ -6,7 +6,6 @@ multiboot2_header:
     dd multiboot2_header_end - multiboot2_header            ; header length
     dd -(0xE85250D6 + 0 + (multiboot2_header_end - multiboot2_header)) ; checksum
 
-    ; Framebuffer tag (request 1024x768 32bpp — Limine/GRUB will try to match)
     align 8
     dw 5                ; type: framebuffer
     dw 0                ; flags

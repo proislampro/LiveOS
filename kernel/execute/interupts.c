@@ -36,7 +36,6 @@ void set_idt_gate(int n, uint64_t handler);
 void syscall_dispatcher(registers_t* regs) {
     switch (regs->rax) {
         case 1:
-            print_string((char*)regs->rbx);
             break;
         default:
             break;
