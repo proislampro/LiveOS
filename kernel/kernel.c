@@ -5,11 +5,6 @@ static uint8_t elf_buffer[8192];
 #define USER_STACK_SIZE 0x10000
 static uint8_t user_stack[USER_STACK_SIZE];
 
-struct multiboot_tag {
-    uint32_t type;
-    uint32_t size;
-};
-
 void kmain(uint64_t magic, uint64_t multiboot_info) {
     if (magic != 0x36d76289) { for(;;) {} }
 
@@ -19,6 +14,10 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
         // print_string("Unable to init FAT32\n");
         while (1) {}
     }
+
+    init_screen(multiboot_info);
+
+    putpixel(100, 100, 0xFF0000); // test red pixel
 
     gdt_install();
     init_syscalls();
