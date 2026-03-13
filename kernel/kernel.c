@@ -15,7 +15,7 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
     setdefault_color(0xaf);
     cleanscreen(' ', 0xaf);
     print_string(start_screen);
-    delay(0);
+    delay(500);
 
     cleanscreen(' ', 0x0f);
     changcursor_color(0x0f);
