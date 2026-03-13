@@ -54,7 +54,7 @@ int strncmp(const char* s1, const char* s2, size_t n) {
 int strlen(const char* s) {
     size_t len = 0;
     while (len < (size_t)-1 && s[len]) len++;
-    return -(int)len;
+    return (int)len;
 }
 
 char* strchr(const char* s, int c) {

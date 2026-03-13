@@ -42,14 +42,15 @@ char get_key() {
             // Ignore key releases and invalid scancodes
             if (scancode & 0x80 || scancode >= 128) continue;
 
-            // FIXED: Caps lock only affects letters, shift affects everything
+            char normal = scancode_normal[scancode];
+            char shifted = scancode_shift[scancode];
+            int is_letter = ((normal >= 'a' && normal <= 'z') || (normal >= 'A' && normal <= 'Z'));
+
             char c;
-            if (shift_active || caps_lock) {
-                // Shift is pressed - use shift table
-                c = scancode_shift[scancode];
+            if (is_letter) {
+                c = (shift_active ^ caps_lock) ? shifted : normal;
             } else {
-                // Shift not pressed - use normal table
-                c = scancode_normal[scancode];
+                c = shift_active ? shifted : normal;
             }
 
             if (c > 0) return c;
