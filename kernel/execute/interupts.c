@@ -25,8 +25,6 @@ static idt_entry_t idt[256];
 typedef struct {
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
     uint64_t rsi, rdi, rbp, rdx, rcx, rbx, rax;
-    uint64_t int_no, err_code;
-    uint64_t rip, cs, rflags, rsp, ss;
 } __attribute__((packed)) registers_t;
 
 // Forward declaration
@@ -113,6 +111,6 @@ void set_idt_gate(int n, uint64_t handler) {
     idt[n].base_high   = (handler >> 32) & 0xFFFFFFFF;
     idt[n].sel         = 0x08;      // Kernel code segment
     idt[n].ist         = 0;         // IST = 0
-    idt[n].flags       = 0x8E;      // Present + DPL=0 + 64-bit interrupt gate
+    idt[n].flags       = 0xEE;      // Present + DPL=3 + 64-bit interrupt gate
     idt[n].reserved    = 0;
 }

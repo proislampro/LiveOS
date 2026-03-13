@@ -8,8 +8,6 @@ static uint8_t user_stack[USER_STACK_SIZE];
 void kmain(uint64_t magic, uint64_t multiboot_info) {
     if (magic != 0x36d76289) { for(;;) {} }
 
-    struct multiboot2_info *mb = (struct multiboot2_info *)multiboot_info;
-
     if (fat32_init() != 0) {
         // print_string("Unable to init FAT32\n");
         while (1) {}
@@ -26,7 +24,7 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
     if (file_size > 0) {
         uint32_t entry = load_elf(elf_buffer, file_size);
         if (entry) {
-            jump_to_user_mode(entry, (uint32_t)(user_stack + USER_STACK_SIZE));
+            jump_to_user_mode(entry, (uint64_t)(user_stack + USER_STACK_SIZE));
 
         } else {
             // print_string("Failed to load ELF from /apps/shell.app\n");

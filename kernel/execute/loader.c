@@ -63,29 +63,42 @@ int load_elf(void* file, uint64_t size) {
         eh->magic[3] != 'F')
         return 0;
 
+    if (eh->phoff + ((uint64_t)eh->phnum * eh->phentsize) > size) {
+        return 0;
+    }
+
     Elf64_Phdr* ph = (Elf64_Phdr*)((uint8_t*)file + eh->phoff);
-    uint64_t load_addr = USER_PROGRAM_BASE;
     uint64_t entry_addr = 0;
 
     for (int i = 0; i < eh->phnum; i++) {
         if (ph[i].type != 1) continue; // PT_LOAD
 
-        // Copy file segment to user memory
-        memcpy((void*)load_addr,
+        if (ph[i].filesz > ph[i].memsz) {
+            return 0;
+        }
+
+        if (ph[i].offset + ph[i].filesz > size) {
+            return 0;
+        }
+
+        if (ph[i].vaddr < USER_PROGRAM_BASE ||
+            ph[i].vaddr + ph[i].memsz > USER_PROGRAM_BASE + USER_PROGRAM_SIZE) {
+            return 0;
+        }
+
+        // Copy file segment to target virtual memory region
+        memcpy((void*)ph[i].vaddr,
                (uint8_t*)file + ph[i].offset,
                ph[i].filesz);
 
         // Zero the rest of the segment
-        memset((void*)(load_addr + ph[i].filesz),
+        memset((void*)(ph[i].vaddr + ph[i].filesz),
                0,
                ph[i].memsz - ph[i].filesz);
+    }
 
-        // If entry is in this segment, calculate its address
-        if (eh->entry >= ph[i].vaddr && eh->entry < ph[i].vaddr + ph[i].memsz) {
-            entry_addr = load_addr + (eh->entry - ph[i].vaddr);
-        }
-
-        load_addr += ph[i].memsz;
+    if (eh->entry >= USER_PROGRAM_BASE && eh->entry < USER_PROGRAM_BASE + USER_PROGRAM_SIZE) {
+        entry_addr = eh->entry;
     }
 
     return entry_addr;
