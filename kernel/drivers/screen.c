@@ -1,5 +1,10 @@
 #include <stdint.h>
 
+struct multiboot_tag_header {
+    uint32_t type;
+    uint32_t size;
+};
+
 struct multiboot_tag_framebuffer {
     uint32_t type;
     uint32_t size;
@@ -9,31 +14,49 @@ struct multiboot_tag_framebuffer {
     uint32_t width;
     uint32_t height;
     uint8_t bpp;
-    uint8_t type;
+    uint8_t framebuffer_type;
     uint16_t reserved;
 };
 
+static uint8_t *framebuffer_addr = 0;
+static uint32_t framebuffer_pitch = 0;
+static uint32_t framebuffer_width = 0;
+static uint32_t framebuffer_height = 0;
+static uint8_t framebuffer_bpp = 0;
 
 void init_screen(uint64_t multiboot_info) {
-    uint8_t* tag = (uint8_t*)multiboot_info + 8;
+    uint8_t *tag = (uint8_t *)multiboot_info + 8;
 
     while (1) {
-        struct multiboot_tag *t = (struct multiboot_tag*)tag;
+        struct multiboot_tag_header *t = (struct multiboot_tag_header *)tag;
+
         if (t->type == 8) {
-            struct multiboot_tag_framebuffer *fb = (struct multiboot_tag_framebuffer*)tag;
+            struct multiboot_tag_framebuffer *fb = (struct multiboot_tag_framebuffer *)tag;
+            framebuffer_addr = (uint8_t *)(uint64_t)fb->addr;
+            framebuffer_pitch = fb->pitch;
+            framebuffer_width = fb->width;
+            framebuffer_height = fb->height;
+            framebuffer_bpp = fb->bpp;
             return;
         }
-        if (t->type == 0) break;
-        tag += (t->size + 7) & ~7;
 
+        if (t->type == 0) {
+            break;
+        }
+
+        tag += (t->size + 7) & ~7;
     }
-    while (1) {}
 }
 
 void putpixel(int x, int y, uint32_t color) {
-    uint32_t* pixel;
+    if (!framebuffer_addr || framebuffer_bpp != 32) {
+        return;
+    }
 
-    pixel = (uint32_t*)((uint8_t*)f-> + y * pitch + x * 4);
+    if (x < 0 || y < 0 || (uint32_t)x >= framebuffer_width || (uint32_t)y >= framebuffer_height) {
+        return;
+    }
 
+    uint32_t *pixel = (uint32_t *)(framebuffer_addr + (uint32_t)y * framebuffer_pitch + (uint32_t)x * 4);
     *pixel = color;
 }
