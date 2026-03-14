@@ -14,8 +14,12 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
     }
 
     init_screen(multiboot_info);
-
-    putpixel(100, 100, 0xFF0000); // test red pixel
+    
+    for (int y = 0; y < 200; y++) {
+        for (int x = 0; x < 200; x++) {
+            putpixel(x, y, 0x00FF00); // test green pixels
+        }
+    }
 
     gdt_install();
     init_syscalls();
