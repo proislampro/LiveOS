@@ -28,10 +28,10 @@ extern kmain
 _start:
     mov rsp, stack_top
 
-    push 0              ; align stack to 16 bytes (rbx hi)
-    push rbx            ; multiboot2 info struct pointer
-    push 0              ; align (rax hi)
-    push rax            ; multiboot2 magic (should be 0x36d76289)
+    ; SysV ABI: first two C args must be in RDI, RSI.
+    ; Multiboot2 enters with magic in RAX and info pointer in RBX.
+    mov rdi, rax
+    mov rsi, rbx
 
     call kmain
 
