@@ -79,7 +79,7 @@ $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 
 	# No limine install step needed for UEFI — the EFI binary is self-sufficient
 
-run:
+run: $(IMAGE_NAME)
 	qemu-system-x86_64 \
 		-machine q35 \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/ovmf/OVMF.fd \
