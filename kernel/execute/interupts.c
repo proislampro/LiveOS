@@ -90,7 +90,6 @@ __attribute__((naked)) void syscall_handler_wrapper() {
     );
 }
 
-
 // Initialize IDT and install syscall gate
 void init_syscalls() {
     // syscall interrupt (int 0x80)

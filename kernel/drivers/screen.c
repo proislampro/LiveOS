@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+
 struct multiboot_tag_header {
     uint32_t type;
     uint32_t size;
@@ -25,6 +26,8 @@ static uint32_t framebuffer_height = 0;
 static uint8_t framebuffer_bpp = 0;
 
 void init_screen(uint64_t multiboot_info) {
+    if (!multiboot_info) return;
+
     uint8_t *tag = (uint8_t *)multiboot_info + 8;
 
     while (1) {
@@ -32,11 +35,15 @@ void init_screen(uint64_t multiboot_info) {
 
         if (t->type == 8) {
             struct multiboot_tag_framebuffer *fb = (struct multiboot_tag_framebuffer *)tag;
+
+            if (fb->addr == 0) break;
+
             framebuffer_addr = (uint8_t *)(uint64_t)fb->addr;
             framebuffer_pitch = fb->pitch;
             framebuffer_width = fb->width;
             framebuffer_height = fb->height;
             framebuffer_bpp = fb->bpp;
+
             return;
         }
 
@@ -46,6 +53,9 @@ void init_screen(uint64_t multiboot_info) {
 
         tag += (t->size + 7) & ~7;
     }
+
+    framebuffer_addr = 0;
+    framebuffer_pitch = framebuffer_width = framebuffer_height = framebuffer_bpp = 0;
 }
 
 void putpixel(int x, int y, uint32_t color) {
@@ -59,4 +69,12 @@ void putpixel(int x, int y, uint32_t color) {
 
     uint32_t *pixel = (uint32_t *)(framebuffer_addr + (uint32_t)y * framebuffer_pitch + (uint32_t)x * 4);
     *pixel = color;
+}
+
+void draw_rect(int start_x, int start_y, int width, int height, uint32_t color) {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            putpixel(start_x + x, start_y + y, color);
+        }
+    }
 }

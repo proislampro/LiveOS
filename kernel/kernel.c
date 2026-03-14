@@ -5,21 +5,16 @@ static uint8_t elf_buffer[8192];
 #define USER_STACK_SIZE 0x10000
 static uint8_t user_stack[USER_STACK_SIZE];
 
-void kmain(uint64_t magic, uint64_t multiboot_info) {
-    if (magic != 0x36d76289) { for(;;) {} }
+void debug_point() {}
 
-    if (fat32_init() != 0) {
-        // print_string("Unable to init FAT32\n");
-        while (1) {}
-    }
+void kmain(uint64_t magic, uint64_t multiboot_info) {
+    if (magic != 0x36d76287) { for(;;) {} }
+
+    // if (fat32_init() != 0) while (1) {}
 
     init_screen(multiboot_info);
-    
-    for (int y = 0; y < 200; y++) {
-        for (int x = 0; x < 200; x++) {
-            putpixel(x, y, 0x00FF00); // test green pixels
-        }
-    }
+
+    draw_rect(0, 0, 100, 100, 0x00FFFFFF);
 
     gdt_install();
     init_syscalls();

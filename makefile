@@ -84,7 +84,8 @@ run: $(IMAGE_NAME)
 		-machine q35 \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/ovmf/OVMF.fd \
 		-drive format=raw,file=$(IMAGE_NAME) \
-		-m 512M
+		-m 512M \
+		-s -S
 
 clean:
 	rm -f binairies/*.o $(KERNEL) $(IMAGE_NAME)

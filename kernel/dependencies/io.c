@@ -31,27 +31,46 @@ uint32_t inl(uint16_t port) {
 }
 
 void outsl(uint16_t port, const void* addr, uint32_t count) {
-    __asm__ __volatile__ ("rep outsl" : "+S"(addr), "+c"(count) : "d"(port));
-}  
+    __asm__ __volatile__ ("rep outsl"
+        : "+S"(addr), "+c"(count)
+        : "d"(port)
+        : "memory");
+}
 
 void insl(uint16_t port, void* addr, uint32_t count) {
-    __asm__ __volatile__ ("rep insl" : "+D"(addr), "+c"(count) : "d"(port));
+    __asm__ __volatile__ ("rep insl"
+        : "+D"(addr), "+c"(count)
+        : "d"(port)
+        : "memory");
 }
 
 void outsb(uint16_t port, const void* addr, uint32_t count) {
-    __asm__ __volatile__ ("rep outsb" : "+S"(addr), "+c"(count) : "d"(port));
+    __asm__ __volatile__ ("rep outsb"
+        : "+S"(addr), "+c"(count)
+        : "d"(port)
+        : "memory");
 }
 
 void insb(uint16_t port, void* addr, uint32_t count) {
-    __asm__ __volatile__ ("rep insb" : "+D"(addr), "+c"(count) : "d"(port));
+    __asm__ __volatile__ ("rep insb"
+        : "+D"(addr), "+c"(count)
+        : "d"(port)
+        : "memory");
 }
 
 void outsw(uint16_t port, const void* addr, uint32_t count) {
-    __asm__ __volatile__ ("rep outsw" : "+S"(addr), "+c"(count) : "d"(port));
+    __asm__ __volatile__ ("rep outsw"
+        : "+S"(addr), "+c"(count)
+        : "d"(port)
+        : "memory");
 }
 
 void insw(uint16_t port, void* addr, uint32_t count) {
-    __asm__ __volatile__ ("rep insw" : "+D"(addr), "+c"(count) : "d"(port));
+    __asm__ __volatile__ ("rep insw"
+        : "+D"(addr), "+c"(count)
+        : "d"(port)
+        : "memory");
 }
+
 
 

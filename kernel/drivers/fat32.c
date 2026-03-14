@@ -68,8 +68,7 @@ uint32_t cluster_to_lba(struct FAT32* f, uint32_t cluster) {
 }
 
 int read_cluster(struct FAT32* f, uint32_t cluster, uint8_t* buf) {
-    for (uint8_t i = 0; i < f->sectors_per_cluster; i++)
-        if (read_sector(cluster_to_lba(f, cluster) + i, buf + i * f->bytes_per_sector) != 0) return -1;
+    for (uint8_t i = 0; i < f->sectors_per_cluster; i++) if (read_sector(cluster_to_lba(f, cluster) + i, buf + i * f->bytes_per_sector) != 0) return -1;
     return 0;
 }
 
