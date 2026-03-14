@@ -30,6 +30,15 @@ typedef struct {
 // Forward declaration
 void set_idt_gate(int n, uint64_t handler);
 
+__attribute__((naked)) void default_interrupt_handler_wrapper() {
+    asm volatile (
+        "cli\n"
+        "1:\n"
+        "hlt\n"
+        "jmp 1b\n"
+    );
+}
+
 // Syscall dispatcher
 void syscall_dispatcher(registers_t* regs) {
     switch (regs->rax) {
@@ -82,7 +91,6 @@ __attribute__((naked)) void syscall_handler_wrapper() {
         "pop %%rbx\n"
         "pop %%rax\n"
 
-        "sti\n"
         "iretq\n"
         :
         :
@@ -92,6 +100,11 @@ __attribute__((naked)) void syscall_handler_wrapper() {
 
 // Initialize IDT and install syscall gate
 void init_syscalls() {
+    
+    for (int i = 0; i < 256; i++) {
+        set_idt_gate(i, (uint64_t)default_interrupt_handler_wrapper);
+    }
+
     // syscall interrupt (int 0x80)
     set_idt_gate(0x80, (uint64_t)syscall_handler_wrapper);
 
