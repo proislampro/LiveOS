@@ -59,51 +59,36 @@ static uint32_t encode_color(uint32_t color) {
 }
 
 void init_screen(uint64_t multiboot_info) {
-    if (!multiboot_info) return;
+
+    if (!multiboot_info) {
+        framebuffer_addr = (uint8_t *)0xE0000000;
+        framebuffer_pitch = 1024 * 4;
+        framebuffer_width = 1024;
+        framebuffer_height = 768;
+        framebuffer_bpp = 32;
+        return;
+    }
 
     uint8_t *tag = (uint8_t *)multiboot_info + 8;
 
     while (1) {
         struct multiboot_tag_header *t = (struct multiboot_tag_header *)tag;
 
-        if (t->size < sizeof(struct multiboot_tag_header)) {
-            break;
-        }
+        if (t->type == 0) break;
 
         if (t->type == 8) {
             struct multiboot_tag_framebuffer *fb = (struct multiboot_tag_framebuffer *)tag;
 
-            if (fb->addr == 0) break;
-
-            framebuffer_addr = (uint8_t *)(uint64_t)fb->addr;
+            framebuffer_addr  = (uint8_t *)(uint64_t)fb->addr;
             framebuffer_pitch = fb->pitch;
             framebuffer_width = fb->width;
             framebuffer_height = fb->height;
             framebuffer_bpp = fb->bpp;
-            framebuffer_type = fb->framebuffer_type;
-
-            if (fb->framebuffer_type == 1) {
-                red_field_position = fb->framebuffer_info[0];
-                red_mask_size = fb->framebuffer_info[1];
-                green_field_position = fb->framebuffer_info[2];
-                green_mask_size = fb->framebuffer_info[3];
-                blue_field_position = fb->framebuffer_info[4];
-                blue_mask_size = fb->framebuffer_info[5];
-            }
-
             return;
         }
 
-        if (t->type == 0) {
-            break;
-        }
-
-        tag += (t->size + 7) & ~7;
+        tag += (t->size + 7) & ~7;  // align to 8 bytes
     }
-
-    framebuffer_addr = 0;
-    framebuffer_pitch = framebuffer_width = framebuffer_height = framebuffer_bpp = 0;
-    framebuffer_type = 0;
 }
 
 void putpixel(int x, int y, uint32_t color) {
