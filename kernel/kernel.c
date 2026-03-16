@@ -14,7 +14,10 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
 
     init_screen(multiboot_info);
 
-    draw_rect(0, 0, 100, 100, 0x00FFFFFF);
+    draw_rect(0, 0, 160, 160, 0x00FF0000);
+    draw_rect(170, 0, 160, 160, 0x0000FF00);
+    draw_rect(340, 0, 160, 160, 0x000000FF);
+    draw_rect(510, 0, 160, 160, 0x00FFFF00);
 
     gdt_install();
     init_syscalls();
@@ -40,4 +43,3 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
 
     while (1) {}
 }
-
