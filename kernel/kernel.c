@@ -10,10 +10,24 @@ void debug_point() {}
 void kmain(uint64_t magic, uint64_t multiboot_info) {
     if (magic != 0x36d76287) { for(;;) {} }
 
-    // if (fat32_init() != 0) while (1) {}
-
     init_screen(multiboot_info);
+    if (framebuffer_addr && framebuffer_bpp == 32) {
+        draw_rect(10, 0, 10, 10, 0x0000FF00); // Green: framebuffer OK
+    } else {
+        draw_rect(10, 0, 10, 10, 0x000000FF); // Blue: framebuffer fail
+    }
+    draw_rect(0, 0, 20, 20, 0x00FF0000); // Red: entered kmain
 
+    // Step 2: Try to init FAT32
+    int fat32_status = fat32_init();
+    if (fat32_status != 0) {
+        // Draw yellow if FAT32 failed
+        draw_rect(20, 0, 20, 20, 0x00FFFF00); // Yellow: FAT32 fail
+        while (1) {}
+    }
+    draw_rect(40, 0, 20, 20, 0x0000FF00); // Green: FAT32 OK
+
+    // Step 3: Draw main white square
     draw_rect(0, 0, 100, 100, 0x00FFFFFF);
 
     gdt_install();
@@ -23,19 +37,13 @@ void kmain(uint64_t magic, uint64_t multiboot_info) {
     if (file_size > 0) {
         uint32_t entry = load_elf(elf_buffer, file_size);
         if (entry) {
+            draw_rect(60, 0, 20, 20, 0x000000FF); // Blue: ELF loaded
             jump_to_user_mode(entry, (uint64_t)(user_stack + USER_STACK_SIZE));
-
         } else {
-            // print_string("Failed to load ELF from /apps/shell.app\n");
+            draw_rect(80, 0, 20, 20, 0x00FF00FF); // Magenta: ELF load fail
         }
-    } else if (file_size == -1) {
-        // print_string("/apps/shell.app not found\n");
-    } else if (file_size == -2) {
-        // print_string("/apps/shell.app is too large\n");
-    } else if (file_size == -3) {
-        // print_string("/apps/shell.app unable to read\n");
     } else {
-        // print_string("Unknown error loading /apps/shell.app\n");
+        draw_rect(80, 0, 20, 20, 0x00FF00FF); // Magenta: file read fail
     }
 
     while (1) {}

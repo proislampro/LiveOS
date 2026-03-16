@@ -26,36 +26,36 @@ static uint32_t framebuffer_height = 0;
 static uint8_t framebuffer_bpp = 0;
 
 void init_screen(uint64_t multiboot_info) {
-    if (!multiboot_info) return;
+
+    if (!multiboot_info) {
+        framebuffer_addr = (uint8_t *)0xE0000000;
+        framebuffer_pitch = 1024 * 4;
+        framebuffer_width = 1024;
+        framebuffer_height = 768;
+        framebuffer_bpp = 32;
+        return;
+    }
 
     uint8_t *tag = (uint8_t *)multiboot_info + 8;
 
     while (1) {
         struct multiboot_tag_header *t = (struct multiboot_tag_header *)tag;
 
+        if (t->type == 0) break;
+
         if (t->type == 8) {
             struct multiboot_tag_framebuffer *fb = (struct multiboot_tag_framebuffer *)tag;
 
-            if (fb->addr == 0) break;
-
-            framebuffer_addr = (uint8_t *)(uint64_t)fb->addr;
+            framebuffer_addr  = (uint8_t *)(uint64_t)fb->addr;
             framebuffer_pitch = fb->pitch;
             framebuffer_width = fb->width;
             framebuffer_height = fb->height;
             framebuffer_bpp = fb->bpp;
-
             return;
         }
 
-        if (t->type == 0) {
-            break;
-        }
-
-        tag += (t->size + 7) & ~7;
+        tag += (t->size + 7) & ~7;  // align to 8 bytes
     }
-
-    framebuffer_addr = 0;
-    framebuffer_pitch = framebuffer_width = framebuffer_height = framebuffer_bpp = 0;
 }
 
 void putpixel(int x, int y, uint32_t color) {

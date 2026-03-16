@@ -105,9 +105,16 @@ uint32_t fat32_next_cluster(struct FAT32* f, uint32_t cluster) {
 int fat32_init() {
     uint8_t buffer[512] = {0};
     int read_result = read_sector(2048, buffer);
-    if (read_result != 0) return read_result;
+    if (read_result != 0) {
+        return read_result; // -1: disk error
+    }
 
     struct FAT32_BPB* bpb = (struct FAT32_BPB*)buffer;
+
+    // Defensive: check for valid BPB signature (should be 0x55AA at offset 510)
+    if (buffer[510] != 0x55 || buffer[511] != 0xAA) {
+        return -5; // Invalid BPB signature
+    }
 
     if (bpb->BPB_BytsPerSec == 0 || bpb->BPB_SecPerClus == 0 || bpb->BPB_FATSz32 == 0) return -2;
 
@@ -122,6 +129,14 @@ int fat32_init() {
 
     if (fat->bytes_per_cluster > FAT32_MAX_CLUSTER_SIZE) {
         return -4;
+    }
+
+    // Defensive: check for reasonable values
+    if (fat->bytes_per_sector != 512 && fat->bytes_per_sector != 1024 && fat->bytes_per_sector != 2048 && fat->bytes_per_sector != 4096) {
+        return -6; // Unusual sector size
+    }
+    if (fat->sectors_per_cluster == 0 || fat->sectors_per_cluster > 128) {
+        return -7; // Unusual cluster size
     }
 
     return 0;
