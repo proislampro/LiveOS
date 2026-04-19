@@ -5,9 +5,7 @@ static uint8_t elf_buffer[8192];
 #define USER_STACK_SIZE 0x10000
 static uint8_t user_stack[USER_STACK_SIZE];
 
-void kmain(uint32_t magic, uint32_t multiboot_info) {
-    if (magic != 0x2BADB002) { for (;;) {} }
-
+void kmain(void) {
     fix_cursor();
     changcursor_color(0xaa);
     setdefault_color(0xaf);

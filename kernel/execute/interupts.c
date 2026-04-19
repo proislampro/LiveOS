@@ -1,6 +1,22 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#if defined(__x86_64__)
+typedef struct {
+    uint64_t dummy;
+} registers_t;
+
+void syscall_dispatcher(registers_t* regs) {
+    (void)regs;
+}
+
+void init_syscalls(void) {
+    // TODO: add x86_64 IDT + syscall/sysret path.
+}
+#else
+#include <stdint.h>
+#include <stddef.h>
+
 // IDT register structure for LIDT instruction
 typedef struct {
     uint16_t limit;     // Size of IDT - 1
@@ -87,3 +103,4 @@ void set_idt_gate(int n, uint32_t handler) {
     idt[n].flags = 0xEE; 
     idt[n].base_high = (handler >> 16) & 0xFFFF;
 }
+#endif
