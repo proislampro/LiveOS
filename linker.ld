@@ -4,11 +4,6 @@ SECTIONS
 {
     . = 1M;
 
-    .limine_requests ALIGN(8) :
-    {
-        KEEP(*(.limine_requests))
-    }
-
     .text ALIGN(4K) :
     {
         *(.text*)
