@@ -40,38 +40,42 @@ $(SHELLB): $(SHELLC)
 
 
 # =========================
-# Disk Image (BIOS + MBR)
+# Disk Image (UEFI + GPT)
 # =========================
 $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 	# Create empty 64MB disk
 	truncate -s 64M $(IMAGE_NAME)
 
-	# Create MBR + FAT32 partition
+	# Create GPT + EFI System Partition
 	parted -s $(IMAGE_NAME) \
-		mklabel msdos \
-		mkpart primary fat32 1MiB 100% \
-		set 1 boot on
+		mklabel gpt \
+		mkpart ESP fat32 1MiB 100% \
+		set 1 esp on
 
 	# Format partition
 	mformat -i $(IMAGE_NAME)@@1M -F
 
 	# Create /boot directory
 	mmd -i $(IMAGE_NAME)@@1M ::/boot
+	mmd -i $(IMAGE_NAME)@@1M ::/EFI
+	mmd -i $(IMAGE_NAME)@@1M ::/EFI/BOOT
 
 	# Copy required files
 	mcopy -i $(IMAGE_NAME)@@1M \
 		$(KERNEL) \
 		$(CONFIG) \
-		$(LIMINE_DIR)/limine-bios.sys \
 		::/boot/
+
+	mcopy -i $(IMAGE_NAME)@@1M \
+		$(LIMINE_DIR)/BOOTX64.EFI \
+		::/EFI/BOOT/
 	
 	mmd -i $(IMAGE_NAME)@@1M ::/apps
 
 	mcopy -i $(IMAGE_NAME)@@1M -s $(APPS_DIR)/$(SHELLB) ::/apps/
 	mcopy -i $(IMAGE_NAME)@@1M -s hello.txt ::/
 
-	# Install Limine BIOS
-	$(LIMINE_DIR)/limine bios-install $(IMAGE_NAME)
+	# UEFI boot files copied, no BIOS install step needed
 
 
 # =========================
@@ -79,8 +83,9 @@ $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 # =========================
 run:
 	qemu-system-x86_64 \
-	-drive format=raw,file=$(IMAGE_NAME) \
-	-m 512M
+		-bios /usr/share/OVMF/OVMF.fd \
+		-drive format=raw,file=$(IMAGE_NAME) \
+		-m 512M
 
 clean:
 	rm -f binairies/*.o $(KERNEL) $(IMAGE_NAME)
