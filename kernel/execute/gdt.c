@@ -1,5 +1,12 @@
 #include <stdint.h>
 
+#if defined(__x86_64__)
+void gdt_install(void) {
+    // Limine already boots the kernel in long mode with sane segment setup.
+}
+#else
+#include <stdint.h>
+
 #define GDT_ENTRIES 6
 
 // GDT entry structure
@@ -90,3 +97,5 @@ void gdt_install() {
     // Load TSS
     asm volatile("ltr %%ax" :: "a"(0x28));
 }
+
+#endif

@@ -16,9 +16,9 @@ CC = gcc
 AS = nasm
 LD = ld
 
-CFLAGS  = -ffreestanding -m32 -O2 -Wall -Wextra -fno-pic -nostdlib
-LDFLAGS = -T linker.ld -nostdlib
-APP_LDFLAGS = -T apps.ld -nostdlib
+CFLAGS  = -ffreestanding -m64 -O2 -Wall -Wextra -fno-pic -fno-stack-protector -mno-red-zone -mcmodel=kernel -nostdlib
+LDFLAGS = -m elf_x86_64 -T linker.ld -nostdlib
+APP_LDFLAGS = -m elf_x86_64 -T apps.ld -nostdlib
 
 all: clean $(IMAGE_NAME)
 
@@ -29,7 +29,7 @@ $(KERNELO): $(KERNELC)
 	$(CC) $(CFLAGS) -c $(KERNELC) -o $(KERNELO)
 
 $(BOOTO): $(KERNELE)
-	$(AS) -f elf32 $(KERNELE) -o $(BOOTO)
+	$(AS) -f elf64 $(KERNELE) -o $(BOOTO)
 
 $(SHELLB): $(SHELLC)
 	$(CC) $(CFLAGS) -c $(SHELLC) -o $(APPS_DIR)/$(SHELLO)
@@ -78,7 +78,7 @@ $(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
 # Utilities
 # =========================
 run:
-	qemu-system-i386 \
+	qemu-system-x86_64 \
 	-drive format=raw,file=$(IMAGE_NAME) \
 	-m 512M
 
