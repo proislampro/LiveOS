@@ -9,10 +9,10 @@ global _start
 extern kmain
 
 _start:
-    mov esp, stack_top
+    mov rsp, stack_top
     
-    push ebx
-    push eax
+    push rbx
+    push rax
 
     call kmain
 

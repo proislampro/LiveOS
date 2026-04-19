@@ -4,7 +4,7 @@ KERNELE    = kernel/kernel_entry.s
 KERNELC    = kernel/kernel.c
 BOOTO      = binairies/boot.o
 KERNELO    = binairies/kernel.o
-LIMINE_DIR = limine
+LIMINE_DIR = imine
 CONFIG     = limine.conf
 
 APPS_DIR   = binairies/apps
@@ -12,9 +12,9 @@ SHELLC     = apps/shell.c
 SHELLO     = shell.o
 SHELLB	   = shell.app
 
-CC = i686-elf-gcc
+CC = gcc
 AS = nasm
-LD = i686-elf-ld
+LD = ld
 
 CFLAGS  = -ffreestanding -m32 -O2 -Wall -Wextra -fno-pic -nostdlib
 LDFLAGS = -T linker.ld -nostdlib
