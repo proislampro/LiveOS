@@ -1,23 +1,27 @@
 #include <efi.h>
 #include <efilib.h>
 
-EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     InitializeLib(ImageHandle, SystemTable);
 
-    SystemTable->ConOut->Reset(SystemTable->ConOut, FALSE);
-    SystemTable->ConOut->SetMode(SystemTable->ConOut, 0);
+    // Mode 0 is guaranteed to be 80x25 by the UEFI spec
+    EFI_STATUS Status = uefi_call_wrapper(ST->ConOut->SetMode, 2, ST->ConOut, 0);
 
-    // SetAttribute BEFORE ClearScreen
-    SystemTable->ConOut->SetAttribute(SystemTable->ConOut, EFI_WHITE | EFI_BACKGROUND_BLACK);
-    SystemTable->ConOut->ClearScreen(SystemTable->ConOut);
+    if (EFI_ERROR(Status)) {
+        Print(L"Error: Could not set 80x25 mode.\n");
+    } else {
+        Print(L"80x25 VGA-style text mode set successfully.\n");
+    }
 
-    Print(L"Hello, World!\n");
+    // Clear screen to initialize the buffer
+    uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
-    EFI_INPUT_KEY Key;
-    SystemTable->ConIn->Reset(SystemTable->ConIn, FALSE);
-    UINTN EventIndex;
-    SystemTable->BootServices->WaitForEvent(1, &SystemTable->ConIn->WaitForKey, &EventIndex);
-    SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key);
-
-    return EFI_SUCCESS;
+    for (;;) {
+        // Wait for a key press
+        EFI_INPUT_KEY Key;
+        Status = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &Key);
+        if (!EFI_ERROR(Status)) {
+            Print(L"Key pressed: %c\n", Key.UnicodeChar);
+        }
+    }
 }
