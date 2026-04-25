@@ -1,93 +1,69 @@
-IMAGE_NAME = disk.img
-KERNEL     = binairies/kernel.elf
-KERNELE    = kernel/kernel_entry.s
-KERNELC    = kernel/kernel.c
-BOOTO      = binairies/boot.o
-KERNELO    = binairies/kernel.o
-LIMINE_DIR = imine
-CONFIG     = limine.conf
 
-APPS_DIR   = binairies/apps
-SHELLC     = apps/shell.c
-SHELLO     = shell.o
-SHELLB	   = shell.app
+IMAGE_NAME  := disk.img
+KERNEL      := Kernel/build/kernel.elf
+MY_BOOT     := Bootloader/build/BOOTX64.EFI
 
-CC = gcc
-AS = nasm
-LD = ld
+LIMINE_DIR  := ./Limine
+CONFIG      := $(LIMINE_DIR)/limine.conf
 
-CFLAGS  = -ffreestanding -m64 -O2 -Wall -Wextra -fno-pic -fno-stack-protector -mno-red-zone -mcmodel=kernel -nostdlib
-LDFLAGS = -m elf_x86_64 -T linker.ld -nostdlib
-APP_LDFLAGS = -m elf_x86_64 -T apps.ld -nostdlib
+QEMU        := qemu-system-x86_64
+OVMF        := /usr/share/ovmf/OVMF.fd
 
-all: clean $(IMAGE_NAME)
+MTOOLS_IMG  := -i $(IMAGE_NAME)@@1M
 
-$(KERNEL): $(KERNELO) $(BOOTO)
-	$(LD) $(LDFLAGS) -o $(KERNEL) $(BOOTO) $(KERNELO)
 
-$(KERNELO): $(KERNELC)
-	$(CC) $(CFLAGS) -c $(KERNELC) -o $(KERNELO)
+.PHONY: all multiboot singleboot run clean kernel bootloader
 
-$(BOOTO): $(KERNELE)
-	$(AS) -f elf64 $(KERNELE) -o $(BOOTO)
 
-$(SHELLB): $(SHELLC)
-	$(CC) $(CFLAGS) -c $(SHELLC) -o $(APPS_DIR)/$(SHELLO)
-	$(LD) $(APP_LDFLAGS) -o $(APPS_DIR)/$(SHELLB) $(APPS_DIR)/$(SHELLO)
+all: $(IMAGE_NAME) multiboot
+
+kernel:
+	@echo "  BUILD  kernel"
+	@$(MAKE) -C Kernel --no-print-directory
+
+bootloader:
+	@echo "  BUILD  bootloader"
+	@$(MAKE) -C Bootloader --no-print-directory
 
 
 
+$(IMAGE_NAME): kernel bootloader
+	@echo "  IMG    $(IMAGE_NAME)"
+	@dd if=/dev/zero of=$(IMAGE_NAME) bs=1M count=64 status=none
+	@parted -s $(IMAGE_NAME) mklabel gpt
+	@parted -s $(IMAGE_NAME) mkpart ESP fat32 2048s 100%
+	@parted -s $(IMAGE_NAME) set 1 esp on
+	@mformat $(MTOOLS_IMG) -F ::
+	@mmd     $(MTOOLS_IMG) ::/boot ::/EFI ::/EFI/BOOT
+	@mcopy   $(MTOOLS_IMG) $(KERNEL) ::/boot/kernel.elf
+
+multiboot: $(IMAGE_NAME)
+	@echo "  BOOT   multiboot (Limine + LiveOS)"
+	-@mdel  $(MTOOLS_IMG) ::/boot/limine.conf        2>/dev/null; true
+	@mcopy  $(MTOOLS_IMG) $(CONFIG)                  ::/boot/limine.conf
+	-@mdel  $(MTOOLS_IMG) ::/EFI/BOOT/BOOTX64.EFI   2>/dev/null; true
+	@mcopy  $(MTOOLS_IMG) $(LIMINE_DIR)/BOOTX64.EFI  ::/EFI/BOOT/BOOTX64.EFI
+	@mmd    $(MTOOLS_IMG) ::/EFI/LiveOS
+	-@mdel  $(MTOOLS_IMG) ::/EFI/LiveOS/BOOTX64.EFI  2>/dev/null; true
+	@mcopy  $(MTOOLS_IMG) $(MY_BOOT)                 ::/EFI/LiveOS/BOOTX64.EFI
+
+singleboot: $(IMAGE_NAME)
+	@echo "  BOOT   singleboot (LiveOS only)"
+	-@mdel  $(MTOOLS_IMG) ::/EFI/BOOT/BOOTX64.EFI   2>/dev/null; true
+	@mcopy  $(MTOOLS_IMG) $(MY_BOOT)                 ::/EFI/BOOT/BOOTX64.EFI
 
 
-# =========================
-# Disk Image (UEFI + GPT)
-# =========================
-$(IMAGE_NAME): $(KERNEL) $(CONFIG) $(SHELLB)
-	# Create empty 64MB disk
-	truncate -s 64M $(IMAGE_NAME)
-
-	# Create GPT + EFI System Partition
-	parted -s $(IMAGE_NAME) \
-		mklabel gpt \
-		mkpart ESP fat32 1MiB 100% \
-		set 1 esp on
-
-	# Format partition
-	mformat -i $(IMAGE_NAME)@@1M -F
-
-	# Create /boot directory
-	mmd -i $(IMAGE_NAME)@@1M ::/boot
-	mmd -i $(IMAGE_NAME)@@1M ::/EFI
-	mmd -i $(IMAGE_NAME)@@1M ::/EFI/BOOT
-
-	# Copy required files
-	mcopy -i $(IMAGE_NAME)@@1M \
-		$(KERNEL) \
-		$(CONFIG) \
-		::/boot/
-
-	mcopy -i $(IMAGE_NAME)@@1M \
-		$(LIMINE_DIR)/BOOTX64.EFI \
-		::/EFI/BOOT/
-	
-	mmd -i $(IMAGE_NAME)@@1M ::/apps
-
-	mcopy -i $(IMAGE_NAME)@@1M -s $(APPS_DIR)/$(SHELLB) ::/apps/
-	mcopy -i $(IMAGE_NAME)@@1M -s hello.txt ::/
-
-	# UEFI boot files copied, no BIOS install step needed
-
-
-# =========================
-# Utilities
-# =========================
 run:
-	qemu-system-x86_64 \
-		-bios /usr/share/OVMF/OVMF.fd \
-		-drive format=raw,file=$(IMAGE_NAME) \
-		-m 512M
+	@echo "  QEMU   $(IMAGE_NAME)"
+	@$(QEMU) \
+	    -bios  $(OVMF)              \
+	    -drive format=raw,file=$(IMAGE_NAME) \
+	    -m     512M                 \
+	    -net   none                 \
+	    -s
 
 clean:
-	rm -f binairies/*.o $(KERNEL) $(IMAGE_NAME)
-
-.PHONY: all run clean
+	@echo "  CLEAN"
+	@$(MAKE) -C Kernel     clean --no-print-directory
+	@$(MAKE) -C Bootloader clean --no-print-directory
+	@rm -f $(IMAGE_NAME)
