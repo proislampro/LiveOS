@@ -66,4 +66,4 @@ clean:
 	@echo "  CLEAN"
 	@$(MAKE) -C Kernel     clean --no-print-directory
 	@$(MAKE) -C Bootloader clean --no-print-directory
-	@rm -f $(IMAGE_NAME) 
+	@rm -f $(IMAGE_NAME)
