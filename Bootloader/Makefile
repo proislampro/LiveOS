@@ -16,8 +16,9 @@ EFI = build/BOOTX64.EFI
 
 CFLAGS = -I$(EFI_INCLUDE) -I$(EFI_INCLUDE)/x86_64 \
          -fno-stack-protector -fpic -fshort-wchar -mno-red-zone \
-         -DGNU_EFI_USE_MS_ABI -Wall -Wextra -c \
-         -g -Og
+         -DGNU_EFI_USE_MS_ABI \
+         -maccumulate-outgoing-args \
+         -Wall -Wextra -c
 
 LDFLAGS = -nostdlib -znocombreloc -T $(EFI_LIB)/elf_x86_64_efi.lds \
           -shared -Bsymbolic $(EFI_LIB)/crt0-efi-x86_64.o \
