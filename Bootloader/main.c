@@ -16,7 +16,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     // Clear screen to initialize the buffer
     uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
-    for (;;) {
+    for (;;) { 
         // Wait for a key press
         EFI_INPUT_KEY Key;
         Status = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &Key);
