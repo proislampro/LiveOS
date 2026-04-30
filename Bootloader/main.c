@@ -3,14 +3,6 @@
 
 
 EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
-    InitializeLib(ImageHandle, SystemTable);
-
-    Print(L"Hello, World!\n");
-
-    
-    SystemTable->ConIn->Reset(SystemTable->ConIn, FALSE);
-    EFI_INPUT_KEY Key;
-    while (SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key) != EFI_SUCCESS);
-
-    return EFI_SUCCESS;
+    SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Hello world\n");
+  for(;;) asm volatile("hlt");
 }
