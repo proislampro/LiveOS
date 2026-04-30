@@ -12,7 +12,7 @@ SRC = main.c
 OBJ = build/main.o
 SO  = build/main.so
 EFI = build/BOOTX64.EFI
-
+ 
 
 CFLAGS = -I$(EFI_INCLUDE) -I$(EFI_INCLUDE)/x86_64 \
          -fno-stack-protector -fpic -fshort-wchar -mno-red-zone \
