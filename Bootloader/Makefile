@@ -1,65 +1,52 @@
-.RECIPEPREFIX = >
 
-#___________ configs _____________
+ARCH            := x86_64
+TARGET          := BOOTX64.EFI
+BUILD_DIR       := build
 
-CC      = x86_64-w64-mingw32-gcc
-LD      = x86_64-w64-mingw32-ld
+CC              := gcc
+LD              := ld
+OBJCOPY         := objcopy
 
-EFI_LIB_DIR = /usr/include/efi
-EFI_LIB     = /usr/lib
+EFI_INC         := /usr/include/efi
+EFI_LIB         := /usr/lib
+EFI_CRT         := /usr/lib/crt0-efi-x86_64.o
 
-BUILD_DIR   ?= build
+CFLAGS := -I$(EFI_INC) -I$(EFI_INC)/$(ARCH) \
+          -fpic -fshort-wchar -ffreestanding -fno-stack-protector \
+          -mno-red-zone -maccumulate-outgoing-args \
+          -DEFI_FUNCTION_WRAPPER -DGNU_EFI_USE_MS_ABI
 
-BOOT_SRC    ?= main.c
+SRC := main.c
+OBJ := $(BUILD_DIR)/main.o
+ELF := $(BUILD_DIR)/bootloader.so
+EFI := $(BUILD_DIR)/$(TARGET)
 
-#_________ compiler _________
+all: $(EFI)
 
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-CFLAGS = -fshort-wchar\
-        -mno-red-zone\
-		-ffreestanding\
-		-fno-stack-protector\
-		-Wall\
-		-Wextra\
-		-I$(EFI_LIB_DIR)\
-		-I$(EFI_LIB)
+$(OBJ): $(SRC) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-LDFLAGS = \
-	--nostdlib\
-	--entry=uefi_main\
-	--subsystem 10
+$(ELF): $(OBJ)
+	$(LD) -nostdlib -znocombreloc \
+	-T /usr/lib/elf_x86_64_efi.lds \
+	/usr/lib/crt0-efi-x86_64.o \
+	$(OBJ) \
+	-L/usr/lib -lgnuefi -lefi \
+    -shared -Bsymbolic \
+	-o $@
 
+$(EFI): $(ELF)
+	$(OBJCOPY) \
+		-j .text -j .sdata -j .data -j .dynamic \
+		-j .dynsym -j .rel -j .rela -j .reloc \
+		--target=efi-app-x86_64 \
+		--subsystem=10 \
+		$< $@
 
-#____ main ____
+clean:
+	rm -rf $(BUILD_DIR)
 
-SRC_CFILES  = $(EFI_LIB_SRC)  $(BOOT_SRC) 
-
-OBJECTS     = $(BUILD_DIR)/main.o
-
-BOOT_OUTPUT = $(BUILD_DIR)/BOOTX64.EFI
-
-#_____________ RECEPIES ____________
-
-# bootloader
-$(BOOT_OUTPUT) : $(OBJECTS) | $(BUILD_DIR)
-
-> @$(LD) $(LDFLAGS) -o $@ $^
-
-# objects
-$(BUILD_DIR)/%.o : %.c
-
-> @mkdir -p $(dir $@)
-> @$(CC) $(CFLAGS) -c $< -o $@
-
-
-#___________ PHONY ____________
-
-.PHONY : all clean
-
-all_target = $(BOOT_OUTPUT)
-
-all    : $(all_target)
-
-clean  :
-> @rm -f $(OBJECTS)
-> @rm -f $(BOOT_OUTPUT)
+rebuild: clean all

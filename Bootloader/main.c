@@ -7,7 +7,10 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 
     Print(L"Hello, World!\n");
 
-    while (1) {};
+    
+    SystemTable->ConIn->Reset(SystemTable->ConIn, FALSE);
+    EFI_INPUT_KEY Key;
+    while (SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key) != EFI_SUCCESS);
 
     return EFI_SUCCESS;
 }
