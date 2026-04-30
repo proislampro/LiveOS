@@ -1,0 +1,62 @@
+.RECIPEPREFIX = >
+
+#___________ configs _____________
+
+EFI_LIB_DIR = efi_lib
+
+BUILD_DIR   ?= build/
+
+BIN_DIR     ?= build/
+
+BOOT_SRC    ?= main.c
+
+#_________ compiler _________
+
+
+
+
+#____ main ____
+
+EFI_LIB_SRC = $(shell find $(EFI_LIB_DIR) -name "*.c" )
+
+SRC_CFILES  = $(EFI_LIB_SRC)  $(BOOT_SRC) 
+
+OBJECTS     = $(SRC_CFILES:%.c=$(BUILD_DIR)/%.o) 					   		# $(SRC_CFILES:.c=.o) replaces .c with .o for files in the source list
+
+BOOT_OUTPUT = $(BIN_DIR)/$(BOOT_SRC:.c=.efi)
+
+#_____________ RECEPIES ____________
+
+# bootloader
+$(BOOT_OUTPUT) : $(OBJECTS) | $(BIN_DIR)
+
+> @$(LD) $(LDFLAGS) -o $@ $^                   								#  $@ = BOOT_OUTPUT    $^ = OBJECTS
+> @echo "linked $@"
+
+# objects
+$(BUILD_DIR)/%.o : %.c
+
+> @mkdir -p $(dir $@)
+> @echo "compiling $<"
+> @$(CC) $(CFLAGS) -c $< -o $@												#  $< = SRC_CFILES	   $@ = build/OBJECTS
+
+
+# folders
+$(BUILD_DIR):
+> @mkdir -p $(BUILD_DIR)
+
+$(BIN_DIR):
+> @mkdir -p $(BIN_DIR)
+
+
+#___________ PHONY ____________
+
+.PHONY : all clean
+
+all_target = $(BOOT_OUTPUT)
+
+all    : $(all_target)
+
+clean  :
+> rm -f $(OBJECTS)
+> rm -f $(BOOT_OUTPUT)
