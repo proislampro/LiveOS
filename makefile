@@ -15,7 +15,8 @@ MTOOLS_IMG  := -i $(IMAGE_NAME)@@1M
 .PHONY: all multiboot singleboot run clean kernel bootloader
 
 
-all: $(IMAGE_NAME) multiboot
+all:
+	@$(MAKE) multiboot --no-print-directory
 
 kernel:
 	@echo "  BUILD  kernel"

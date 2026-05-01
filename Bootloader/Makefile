@@ -24,13 +24,13 @@ EFI := $(BUILD_DIR)/$(TARGET)
 all: $(EFI)
 
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)
 
 $(OBJ): $(SRC) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(ELF): $(OBJ)
-	$(LD) -nostdlib -znocombreloc \
+	@$(LD) -nostdlib -znocombreloc \
 	-T /usr/lib/elf_x86_64_efi.lds \
 	/usr/lib/crt0-efi-x86_64.o \
 	$(OBJ) \
@@ -39,7 +39,7 @@ $(ELF): $(OBJ)
 	-o $@
 
 $(EFI): $(ELF)
-	$(OBJCOPY) \
+	@$(OBJCOPY) \
 		-j .text -j .sdata -j .data -j .dynamic \
 		-j .dynsym -j .rel -j .rela -j .reloc \
 		--target=efi-app-x86_64 \
