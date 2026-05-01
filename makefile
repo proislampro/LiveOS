@@ -37,6 +37,7 @@ $(IMAGE_NAME): kernel bootloader
 	@mformat $(MTOOLS_IMG) -F ::
 	@mmd     $(MTOOLS_IMG) ::/boot ::/EFI ::/EFI/BOOT
 	@mcopy   $(MTOOLS_IMG) $(KERNEL) ::/boot/kernel.elf
+	@mcopy   $(MTOOLS_IMG) hello.txt ::/hello.txt
 
 multiboot: $(IMAGE_NAME)
 	@echo "  BOOT   multiboot (Limine + LiveOS)"
