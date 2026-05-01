@@ -67,13 +67,13 @@ void scan_string(char* buffer, int max_size, char end_btn) {
         if (c == '\b') {
             if (i > 0) {
                 i--;
-                printchar('\b', getdefault_color());
+                // printchar('\b', getdefault_color());
             }
         } else if ((c >= ' ' || c == '\n') && i < max_size - 1) {
             buffer[i++] = c;
-            printchar(c, getdefault_color());
+            // printchar(c, getdefault_color());
         }
     }
     buffer[i] = '\0';
-    printchar('\n', getdefault_color());
+    // printchar('\n', getdefault_color());
 }

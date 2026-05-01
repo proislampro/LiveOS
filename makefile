@@ -36,7 +36,9 @@ $(IMAGE_NAME): kernel bootloader
 	@parted -s $(IMAGE_NAME) set 1 esp on
 	@mformat $(MTOOLS_IMG) -F ::
 	@mmd     $(MTOOLS_IMG) ::/boot ::/EFI ::/EFI/BOOT
-	@mcopy   $(MTOOLS_IMG) $(KERNEL) ::/boot/kernel.elf
+	@mmd     $(MTOOLS_IMG) ::/system
+	@mmd     $(MTOOLS_IMG) ::/system/bin
+	@mcopy   $(MTOOLS_IMG) $(KERNEL) ::/system/bin/livekernel.elf
 	@mcopy   $(MTOOLS_IMG) hello.txt ::/hello.txt
 
 multiboot: $(IMAGE_NAME)

@@ -1,1 +1,2 @@
-HELLO
+the hello.txt says:
+   Hello, World!
