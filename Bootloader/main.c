@@ -1,14 +1,12 @@
-#include <efi.h>
-#include <efilib.h>
+#include <uefi.h>
 
+int main(int argc, char **argv) {
+    // Standard printf works for UEFI console output
+    printf("Hello, UEFI World!\n");
+    printf("Press any key to exit...\n");
 
-EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
-    InitializeLib(ImageHandle, SystemTable);
+    // Wait for a single keystroke
+    getchar();
 
-    Print(L"Hello, World!\n");
-    
-    EFI_INPUT_KEY Key;
-    while (SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key) != EFI_SUCCESS);
-
-    return EFI_SUCCESS;
+    return 0;
 }
