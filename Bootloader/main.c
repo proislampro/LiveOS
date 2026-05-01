@@ -86,9 +86,9 @@ int main(int argc, char **argv)
 
     if (gop) {
         fb_base   = (unsigned long)gop->Mode->FrameBufferBase;
-        fb_width  = gop->Mode->Info->HorizontalResolution;
-        fb_height = gop->Mode->Info->VerticalResolution;
-        fb_pitch  = gop->Mode->Info->PixelsPerScanLine * 4;
+        fb_width  = gop->Mode->Information->HorizontalResolution;
+        fb_height = gop->Mode->Information->VerticalResolution;
+        fb_pitch  = gop->Mode->Information->PixelsPerScanLine * 4;
     }
 
     // 4. Exit boot services
