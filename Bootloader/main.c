@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 
         buff = malloc(size + 1);
         if(!buff) {
-            fprintf(stderr, "Error: Memory allocation failed\n");
+            printf("Error: Memory allocation failed\n");
             fclose(f); // Always close before returning
             return 1;
         }
@@ -27,14 +27,14 @@ int main(int argc, char **argv)
             buff[size] = '\0';
             printf("File contents:\n%s\n", buff);
         } else {
-            fprintf(stderr, "Error: Could not read file data\n");
+            printf("Error: Could not read file data\n");
         }
 
         free(buff);
         fclose(f);
     } else {
-        fprintf(stderr, "Error: Unable to open /hello.txt\n");
+        printf("Error: Unable to open /hello.txt\n");
     }
-
+    getchar(); // Wait for user input before exiting
     return 0;
 }
