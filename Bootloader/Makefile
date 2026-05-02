@@ -10,7 +10,7 @@ OBJCOPY         := objcopy
 
 SRC             := main.c
 OBJ             := $(BUILD_DIR)/main.o
-SO_FILE         := $(BUILD_DIR)/bootloader.so
+SO_FILE         := $(BUILD_DIR)/main.so
 EFI             := $(BUILD_DIR)/$(TARGET)
 
 
@@ -34,14 +34,18 @@ $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
 $(OBJ): $(SRC) | $(BUILD_DIR)
+	@echo "  $$  Compiling  --> Bootloader/$(BUILD_DIR)/$(notdir $(OBJ))"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(EFI): $(OBJ)
+	@echo "  $$  Linking    --> Bootloader/$(BUILD_DIR)/main.so"
 	@$(LD) $(LDFLAGS) $(UEFI_PATH)/crt_$(ARCH).o \
 		$(OBJ) -o $(SO_FILE) -luefi
+	@echo "  $$  Converting --> Bootloader/$(BUILD_DIR)/$(notdir $(EFI))"
 	@$(OBJCOPY) $(OBJCOPY_FLAGS) $(SO_FILE) $(EFI)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	@echo "  $$  Cleaning   --> Bootloader/$(BUILD_DIR)"
+	@rm -rf $(BUILD_DIR)
 
 rebuild: clean all

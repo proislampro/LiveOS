@@ -19,17 +19,17 @@ all:
 	@$(MAKE) multiboot --no-print-directory
 
 kernel:
-	@echo "  BUILD  kernel"
+	@echo "@ Building    : Kernel"
 	@$(MAKE) -C Kernel --no-print-directory
 
 bootloader:
-	@echo "  BUILD  bootloader"
+	@echo "@ Building    : Bootloader"
 	@$(MAKE) -C Bootloader --no-print-directory
 
 
 
 $(IMAGE_NAME): kernel bootloader
-	@echo "  IMG    $(IMAGE_NAME)"
+	@echo "@ Building    : $(IMAGE_NAME)"
 	@dd if=/dev/zero of=$(IMAGE_NAME) bs=1M count=64 status=none
 	@parted -s $(IMAGE_NAME) mklabel gpt
 	@parted -s $(IMAGE_NAME) mkpart ESP fat32 2048s 100%
@@ -42,7 +42,7 @@ $(IMAGE_NAME): kernel bootloader
 	@mcopy   $(MTOOLS_IMG) hello.txt ::/hello.txt
 
 multiboot: $(IMAGE_NAME)
-	@echo "  BOOT   multiboot (Limine + LiveOS)"
+	@echo "@ Installing  : Limine + LiveOS Bootloader"
 	-@mdel  $(MTOOLS_IMG) ::/boot/limine.conf        2>/dev/null; true
 	@mcopy  $(MTOOLS_IMG) $(CONFIG)                  ::/boot/limine.conf
 	-@mdel  $(MTOOLS_IMG) ::/EFI/BOOT/BOOTX64.EFI   2>/dev/null; true
@@ -52,22 +52,27 @@ multiboot: $(IMAGE_NAME)
 	@mcopy  $(MTOOLS_IMG) $(MY_BOOT)                 ::/EFI/LiveOS/BOOTX64.EFI
 
 singleboot: $(IMAGE_NAME)
-	@echo "  BOOT   singleboot (LiveOS only)"
+	@echo "@ Installing  : LiveOS bootloader"
 	-@mdel  $(MTOOLS_IMG) ::/EFI/BOOT/BOOTX64.EFI   2>/dev/null; true
 	@mcopy  $(MTOOLS_IMG) $(MY_BOOT)                 ::/EFI/BOOT/BOOTX64.EFI
 
 
+MEMORY := 512
+
 run:
-	@echo "  QEMU   $(IMAGE_NAME)"
+	@echo "@ Qemu VM     :"
+	@echo "  $$  BIOS       -->   OVMF-UEFI ($(OVMF))"
+	@echo "  $$  ROM        -->   $(IMAGE_NAME)"
+	@echo "  $$  RAM        -->   $(MEMORY) MB"
 	@$(QEMU) \
-	    -bios  $(OVMF)              \
+	    -bios  $(OVMF) \
 	    -drive format=raw,file=$(IMAGE_NAME) \
-	    -m     512M                 \
-	    -net   none                 \
+	    -m     $(MEMORY)M \
+	    -net   none \
 	    -s
 
 clean:
-	@echo "  CLEAN"
+	@echo "@ Cleaning    :"
 	@$(MAKE) -C Kernel     clean --no-print-directory
 	@$(MAKE) -C Bootloader clean --no-print-directory
 	@rm -f $(IMAGE_NAME) 

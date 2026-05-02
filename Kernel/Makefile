@@ -14,16 +14,20 @@ LDFLAGS = -m elf_x86_64 -T src/linker.ld -nostdlib
 all: $(KERNEL)
 
 $(KERNEL): $(KERNELO) $(BOOTO)
+	@echo "  $$  Linking    --> Kernel/build/$(notdir $(KERNEL))"
 	@$(LD) $(LDFLAGS) -o $(KERNEL) $(BOOTO) $(KERNELO)
 	@rm -f $(KERNELO) $(BOOTO)
 
 $(KERNELO): $(KERNELC)
+	@echo "  $$  Compiling  --> Kernel/build/$(notdir $(KERNELO))"
 	@$(CC) $(CFLAGS) -c $(KERNELC) -o $(KERNELO)
 
 $(BOOTO): $(KERNELE)
+	@echo "  $$  Assembling --> Kernel/build/$(notdir $(BOOTO))"
 	@$(AS) -f elf64 $(KERNELE) -o $(BOOTO)
 
 clean:
+	@echo "  $$  Cleaning   --> Kernel/build/"
 	@rm -f $(KERNELO) $(BOOTO) $(KERNEL)
 
 .PHONY: all clean

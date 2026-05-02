@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include "dependencies.c"
 
-static uint8_t elf_buffer[8192];
-#define USER_STACK_SIZE 0x10000
-static uint8_t user_stack[USER_STACK_SIZE];
+// static uint8_t elf_buffer[8192];
+// #define USER_STACK_SIZE 0x10000
+// static uint8_t user_stack[USER_STACK_SIZE];
 
 void kmain(uint64_t fb_addr, uint32_t fb_width, uint32_t fb_height, uint32_t fb_pitch) {
 

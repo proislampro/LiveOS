@@ -1,5 +1,7 @@
 #include <uefi.h>
 
+char* start_screen = "\n\n                         ______________________________\n                        / \\                            .\n                       |   |                           |.\n                        \\_ |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |           LiveOS          |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |    _______________________|___\n                           |   /                           /.\n                           \\_/____________________________/.";
+
 #define PT_LOAD 1
 
 typedef struct {
@@ -38,12 +40,16 @@ typedef void (*KernelEntry)(
     unsigned int   fb_pitch
 );
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
+
+    printf("%s\n", start_screen);
+
+
     (void)argc; (void)argv;
 
     FILE *f = fopen("\\system\\bin\\livekernel.elf", "r");
     if (!f) { printf("Cannot open kernel\n"); return 1; }
+
 
     // 1. Read ELF header
     Elf64_Ehdr ehdr;
@@ -55,6 +61,7 @@ int main(int argc, char **argv)
         fclose(f);
         return 1;
     }
+
 
     // 2. Load PT_LOAD segments
     for (int i = 0; i < ehdr.e_phnum; i++) {
@@ -73,6 +80,7 @@ int main(int argc, char **argv)
     }
 
     fclose(f);
+
 
     // 3. Query GOP for linear framebuffer (must happen before ExitBootServices)
     efi_guid_t gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
@@ -103,10 +111,11 @@ int main(int argc, char **argv)
 
     gBS->ExitBootServices(NULL, mapKey); // posix-uefi passes image handle internally
 
+
     // 5. Jump to kernel — passes fb info as flat args matching kmain signature
     KernelEntry entry = (KernelEntry)ehdr.e_entry;
     entry(fb_base, fb_width, fb_height, fb_pitch);
 
-    while (1) {}
+    while (1);
     return 0;
 }
