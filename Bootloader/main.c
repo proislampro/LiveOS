@@ -1,4 +1,5 @@
 #include <uefi.h>
+#include <kprintf.c>
 
 
 #define PT_LOAD 1
@@ -39,18 +40,10 @@ typedef void (*KernelEntry)(
     unsigned int   fb_pitch
 );
 
-void serial_print(const char *s) {
-    while (*s) {
-        __asm__ volatile (
-            "movb %0, %%al\n"
-            "outb %%al, $0x3F8\n"
-            :: "r"(*s)
-        );
-        s++;
-    }
-}
-
 int main(int argc, char **argv) {
+
+    serial_init();
+    serial_print("Hello, World!\n");
 
     printf("Opening kernel : ");
 
@@ -96,11 +89,13 @@ int main(int argc, char **argv) {
     printf("Done\n");
     printf("Querying GOP... \n");
 
-    // Define GOP GUID manually to be sure
-    // posix-uefi provides this helper
+    serial_printf("Locating GOP... \n");
+
     efi_gop_t *gop = NULL;
     efi_guid_t guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
     gBS->LocateProtocol(&guid, NULL, (void**)&gop);
+
+    serial_printf("GOB : 0x%lx\n", (unsigned long)gop);
 
     unsigned long fb_base   = 0;
     unsigned int  fb_width  = 0;
@@ -112,9 +107,9 @@ int main(int argc, char **argv) {
         fb_width  = gop->Mode->Information->HorizontalResolution;
         fb_height = gop->Mode->Information->VerticalResolution;
         fb_pitch  = gop->Mode->Information->PixelsPerScanLine * 4;
-        serial_print("GOP found! Framebuffer info:\n");
+        serial_printf("GOP found! Framebuffer info: %lux%u @ 0x%lx\n", fb_width, fb_height, fb_base);
     } else {
-        serial_print("GOP not found. Cannot continue.\n");
+        serial_printf("GOP not found. Cannot continue.\n");
         return 1;
     }
 

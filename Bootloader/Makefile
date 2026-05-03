@@ -17,6 +17,7 @@ EFI             := $(BUILD_DIR)/$(TARGET)
 CFLAGS := -ffreestanding -fno-stack-protector -fno-stack-check \
           -fshort-wchar -mno-red-zone -maccumulate-outgoing-args \
           -fpic -Wno-main -I$(UEFI_PATH) \
+		  -I../Utilities \
 		  -g -Og
 
 
