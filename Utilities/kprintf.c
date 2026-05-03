@@ -3,15 +3,9 @@
 /* --- 1. HARDWARE LEVEL: Port I/O --- */
 /* These functions use inline assembly to talk directly to the CPU's I/O ports. */
 
-static inline void outb(unsigned short port, unsigned char val) {
-    asm volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
-}
+extern void outb(unsigned short port, unsigned char val);
 
-static inline unsigned char inb(unsigned short port) {
-    unsigned char ret;
-    asm volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
-    return ret;
-}
+extern unsigned char inb(unsigned short port);
 
 /* --- 2. SERIAL DRIVER: COM1 (0x3F8) --- */
 

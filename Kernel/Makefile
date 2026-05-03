@@ -1,6 +1,6 @@
 KERNEL     = build/kernel.elf
-KERNELE    = src/kernel_entry.s
-KERNELC    = src/kernel.c
+KERNELE    = src/entry.s
+KERNELC    = src/main.c
 BOOTO      = build/boot.o
 KERNELO    = build/kernel.o
 
@@ -8,7 +8,7 @@ CC = gcc
 AS = nasm
 LD = ld
 
-CFLAGS  = -ffreestanding -m64 -O2 -Wall -Wextra -fno-pic -fno-stack-protector -mno-red-zone -mcmodel=kernel -nostdlib -g -Og
+CFLAGS  = -ffreestanding -m64 -O2 -Wall -Wextra -fno-pic -fno-stack-protector -mno-red-zone -mcmodel=kernel -nostdlib -g -Og -mcmodel=kernel -I ../Utilities
 LDFLAGS = -m elf_x86_64 -T src/linker.ld -nostdlib
 
 all: $(KERNEL)
