@@ -1,6 +1,5 @@
 #include <uefi.h>
 
-char* start_screen = "\n\n                         ______________________________\n                        / \\                            .\n                       |   |                           |.\n                        \\_ |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |           LiveOS          |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |                           |.\n                           |    _______________________|___\n                           |   /                           /.\n                           \\_/____________________________/.";
 
 #define PT_LOAD 1
 
@@ -40,15 +39,27 @@ typedef void (*KernelEntry)(
     unsigned int   fb_pitch
 );
 
+void serial_print(const char *s) {
+    while (*s) {
+        __asm__ volatile (
+            "movb %0, %%al\n"
+            "outb %%al, $0x3F8\n"
+            :: "r"(*s)
+        );
+        s++;
+    }
+}
+
 int main(int argc, char **argv) {
 
-    printf("%s\n", start_screen);
-
+    printf("Opening kernel : ");
 
     (void)argc; (void)argv;
 
     FILE *f = fopen("\\system\\bin\\livekernel.elf", "r");
-    if (!f) { printf("Cannot open kernel\n"); return 1; }
+    if (!f) { printf("Unsuccessful"); return 1; }
+
+    printf("Successful\nKernel entry point: ");
 
 
     // 1. Read ELF header
@@ -62,6 +73,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    printf("0x%lx\nLoading segments : ", ehdr.e_entry);
 
     // 2. Load PT_LOAD segments
     for (int i = 0; i < ehdr.e_phnum; i++) {
@@ -81,11 +93,14 @@ int main(int argc, char **argv) {
 
     fclose(f);
 
+    printf("Done\n");
+    printf("Querying GOP... \n");
 
-    // 3. Query GOP for linear framebuffer (must happen before ExitBootServices)
-    efi_guid_t gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+    // Define GOP GUID manually to be sure
+    // posix-uefi provides this helper
     efi_gop_t *gop = NULL;
-    gBS->LocateProtocol(&gopGuid, NULL, (void **)&gop);
+    efi_guid_t guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+    gBS->LocateProtocol(&guid, NULL, (void**)&gop);
 
     unsigned long fb_base   = 0;
     unsigned int  fb_width  = 0;
@@ -97,6 +112,10 @@ int main(int argc, char **argv) {
         fb_width  = gop->Mode->Information->HorizontalResolution;
         fb_height = gop->Mode->Information->VerticalResolution;
         fb_pitch  = gop->Mode->Information->PixelsPerScanLine * 4;
+        serial_print("GOP found! Framebuffer info:\n");
+    } else {
+        serial_print("GOP not found. Cannot continue.\n");
+        return 1;
     }
 
     // 4. Exit boot services
@@ -116,6 +135,6 @@ int main(int argc, char **argv) {
     KernelEntry entry = (KernelEntry)ehdr.e_entry;
     entry(fb_base, fb_width, fb_height, fb_pitch);
 
-    while (1);
+    // while (1);
     return 0;
 }

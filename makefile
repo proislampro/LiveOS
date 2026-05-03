@@ -69,7 +69,8 @@ run:
 	    -drive format=raw,file=$(IMAGE_NAME) \
 	    -m     $(MEMORY)M \
 	    -net   none \
-	    -s
+	    -s \
+		-vga std
 
 clean:
 	@echo "@ Cleaning    :"
