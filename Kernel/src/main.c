@@ -18,9 +18,12 @@ void kmain() {
     print_string("Hello, World!", 10, 10, 0xFFFFFF, 0x000000);
 
     if (fat32_init() != 0) while (1);
-    char* test_str;
-    //fat32_read_file(fat, "/hello.txt", test_str, 200);
-    //print_string(test_str, 10, 30, 0xFFFFFF, 0x000000);
+    static char test_str[201];
+    int bytes_read = fat32_read_file(fat, "/hello.txt", (uint8_t*)test_str, 200);
+    if (bytes_read > 0) {
+        test_str[bytes_read] = '\0';
+        print_string(test_str, 10, 30, 0xFFFFFF, 0x000000);
+    }
 
     gdt_install();
     init_syscalls();

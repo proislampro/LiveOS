@@ -157,7 +157,8 @@ uint32_t fat32_find_file(struct FAT32* f, const char* path) {
 
         while (current_cluster >= 2 && current_cluster < 0x0FFFFFF8) {
             uint32_t cluster_size = f->bytes_per_cluster;
-            uint8_t cluster_data[4096]; // or dynamically allocate cluster_size
+            static uint8_t cluster_data[4096];
+            if (cluster_size > sizeof(cluster_data)) return -4;
             if (read_cluster(f, current_cluster, cluster_data) != 0) return -3;
 
             for (uint32_t off = 0; off < cluster_size; off += 32) {
