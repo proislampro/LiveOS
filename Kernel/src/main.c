@@ -18,9 +18,10 @@ void kmain() {
     print_string("Hello, World!", 10, 10, 0xFFFFFF, 0x000000);
 
     if (fat32_init() != 0) while (1);
+    serial_printf("FAT32 filesystem initialized successfully: %d\n%x\n%d\n%d\n%x\n", fat32_init(), fat->fat_start_lba, fat->bytes_per_sector, fat->sectors_per_cluster,  fat->root_cluster);
     char* test_str;
-    //fat32_read_file(fat, "/hello.txt", test_str, 200);
-    //print_string(test_str, 10, 30, 0xFFFFFF, 0x000000);
+    fat32_read_file(fat, "/hello.txt", test_str, 200);
+    print_string(test_str, 10, 30, 0xFFFFFF, 0x000000);
 
     gdt_install();
     init_syscalls();
