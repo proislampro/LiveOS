@@ -1,3 +1,6 @@
+#include <stdint.h>
+#include <stdbool.h>
+
 uint8_t mouse_cycle = 0;
 uint8_t mouse_packet[3];
 
@@ -5,7 +8,7 @@ int mouse_position[2] = {400, 300};
 
 void mouse_handler(void) {
     uint8_t status = inb(0x64);
-    
+
     // Check if data is actually available and if it's from the mouse
     if ((status & 0x01) && (status & 0x20)) {
         uint8_t data = inb(0x60);
@@ -51,7 +54,7 @@ void handle_mouse_packet(uint8_t* packet) {
 
     // 2. Sign-extend to 32 bits if needed
     if (packet[0] & 0x10) { // X Sign bit
-        x_move |= ~0xFF; 
+        x_move |= ~0xFF;
     }
     if (packet[0] & 0x20) { // Y Sign bit
         y_move |= ~0xFF;
@@ -59,5 +62,20 @@ void handle_mouse_packet(uint8_t* packet) {
 
     y_move = -y_move;
 
+    serial_printf(
+        "Mouse packet: b0=0x%x b1=0x%x b2=0x%x buttons[L:%d M:%d R:%d]\n",
+        packet[0],
+        packet[1],
+        packet[2],
+        left,
+        middle,
+        right
+    );
+
     move_mouse_cursor(x_move, y_move);
+}
+
+void mouse_dispatcher(char* ps2_data) {
+    (void)ps2_data;
+    mouse_handler();
 }
