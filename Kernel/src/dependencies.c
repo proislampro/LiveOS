@@ -6,5 +6,5 @@
 #include "dependencies/system.c"
 #include "drivers.c"
 #include "execute/gdt.c"
-#include "execute/interupts.c"
+#include "execute/idt.c"
 #include "execute/loader.c"

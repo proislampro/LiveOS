@@ -66,22 +66,7 @@ typedef struct {
     uint64_t ss;
 } __attribute__((packed)) registers_t;
 
-void syscall_dispatcher(registers_t* regs) {
-    switch (regs->rax) {
-        switch (regs->rbx) {
-            case 1:
-                print_string((char*)regs->rcx);
-                break;
-            case 2:
-                setdefault_color((uint8_t)regs->rcx);
-                break;
-            default:
-                break;
-        }
-        default:
-            break;
-    }
-}
+void syscall_dispatcher(registers_t* regs);
 
 extern void mouse_dispatcher(char* ps2_data);
 
@@ -110,7 +95,7 @@ __attribute__((naked)) void mouse_handler_wrapper() {
         "mov %ax, %ds\n"
         "mov %ax, %es\n"
 
-        "mov %, %rdi\n"
+        "mov %rsp, %rdi\n"
         "call mouse_dispatcher\n"
 
         /* ── Restore ────────────────────────────────────────────────── */
