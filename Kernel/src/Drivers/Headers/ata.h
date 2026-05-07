@@ -4,52 +4,48 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/* ── I/O Ports ─────────────────────────────────────────────────────────── */
-#define ATA_DATA        0x1F0   /* Data register (R/W)                      */
-#define ATA_ERROR       0x1F1   /* Error register (R)                        */
-#define ATA_FEATURES    0x1F1   /* Features register (W)                     */
-#define ATA_SECTOR_CNT  0x1F2   /* Sector count register                     */
-#define ATA_LBA_LOW     0x1F3   /* LBA low byte                              */
-#define ATA_LBA_MID     0x1F4   /* LBA mid byte                              */
-#define ATA_LBA_HIGH    0x1F5   /* LBA high byte                             */
-#define ATA_DRIVE_SEL   0x1F6   /* Drive/head select register                */
-#define ATA_STATUS      0x1F7   /* Status register (R)                       */
-#define ATA_COMMAND     0x1F7   /* Command register (W)                      */
-#define ATA_ALT_STATUS  0x3F6   /* Alternate status register (R)             */
-#define ATA_DEV_CTRL    0x3F6   /* Device control register (W)               */
+/* ── I/O Port Offsets (Add these to the Bus Base) ──────────────────────── */
+#define ATA_DATA         0   /* Data register (R/W)                     */
+#define ATA_ERROR        1   /* Error register (R)                      */
+#define ATA_FEATURES     1   /* Features register (W)                   */
+#define ATA_SECTOR_CNT   2   /* Sector count register                   */
+#define ATA_LBA_LOW      3   /* LBA low byte                            */
+#define ATA_LBA_MID      4   /* LBA mid byte                            */
+#define ATA_LBA_HIGH     5   /* LBA high byte                           */
+#define ATA_DRIVE_SEL    6   /* Drive/head select register              */
+#define ATA_STATUS       7   /* Status register (R)                     */
+#define ATA_COMMAND      7   /* Command register (W)                    */
+
+/* Note: Control registers are usually on a different base (0x3F6) 
+   and don't follow the 0-7 offset pattern. Keeping them absolute for now. */
+#define ATA_ALT_STATUS   0x3F6   
+#define ATA_DEV_CTRL     0x3F6   
 
 /* ── ATA Commands ──────────────────────────────────────────────────────── */
-#define ATA_CMD_READ        0x20    /* Read sectors (with retry)             */
-#define ATA_CMD_WRITE       0x30    /* Write sectors (with retry)            */
-#define ATA_CMD_IDENTIFY    0xEC    /* Identify drive                        */
-#define ATA_CMD_FLUSH       0xE7    /* Flush cache                           */
-#define ATA_CMD_READ_DMA    0xC8    /* Read DMA                              */
-#define ATA_CMD_WRITE_DMA   0xCA    /* Write DMA                             */
+#define ATA_CMD_READ         0x20    
+#define ATA_CMD_WRITE        0x30    
+#define ATA_CMD_IDENTIFY     0xEC    
+#define ATA_CMD_FLUSH        0xE7    
 
 /* ── Status Register Flags ─────────────────────────────────────────────── */
-#define ATA_STAT_ERR    (1 << 0)    /* Error occurred                        */
-#define ATA_STAT_IDX    (1 << 1)    /* Index (always 0)                      */
-#define ATA_STAT_CORR   (1 << 2)    /* Corrected data (always 0)             */
-#define ATA_STAT_DRQ    (1 << 3)    /* Data request — ready for PIO transfer */
-#define ATA_STAT_SRV    (1 << 4)    /* Overlapped mode service request       */
-#define ATA_STAT_DF     (1 << 5)    /* Drive fault (does not set ERR)        */
-#define ATA_STAT_RDY    (1 << 6)    /* Drive ready                           */
-#define ATA_STAT_BSY    (1 << 7)    /* Drive busy                            */
+#define ATA_STAT_ERR     (1 << 0)    
+#define ATA_STAT_DRQ     (1 << 3)    
+#define ATA_STAT_SRV     (1 << 4)    
+#define ATA_STAT_DF      (1 << 5)    
+#define ATA_STAT_RDY     (1 << 6)    
+#define ATA_STAT_BSY     (1 << 7)    
 
 /* ── Drive Select Masks ────────────────────────────────────────────────── */
-#define ATA_DRIVE_MASTER_CHS    0xA0    /* Select master, CHS mode           */
-#define ATA_DRIVE_SLAVE_CHS     0xB0    /* Select slave,  CHS mode           */
-#define ATA_DRIVE_MASTER_LBA    0xE0    /* Select master, LBA mode           */
-#define ATA_DRIVE_SLAVE_LBA     0xF0    /* Select slave,  LBA mode           */
-#define ATA_DRIVE_LBA28_MASK    0x0F    /* LBA bits 24-27 mask               */
+#define ATA_DRIVE_MASTER_LBA     0xE0    
+#define ATA_DRIVE_SLAVE_LBA      0xF0    
 
 /* ── Return Codes ──────────────────────────────────────────────────────── */
-#define ATA_SUCCESS      0
-#define ATA_ERROR       -1
+#define ATA_SUCCESS       0
+#define ATA_ERROR_RETURN -1
 
 /* ── Geometry / Limits ─────────────────────────────────────────────────── */
-#define ATA_SECTOR_SIZE     512         /* Bytes per sector                  */
-#define ATA_IDENTIFY_WORDS  256         /* Words returned by IDENTIFY        */
+#define ATA_SECTOR_SIZE     512      
+#define ATA_IDENTIFY_WORDS  256      
 
 /* ── Function Prototypes ───────────────────────────────────────────────── */
 void    ata_init(void);
