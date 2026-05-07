@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <ata.h>
+#include <kprintf.c>
+#include <inout.h>
 
 
 void ata_init(void) {

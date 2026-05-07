@@ -1,23 +1,53 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <inout.h>
+#include <screen.h>
+#include <kprintf.c>
+#include <mouse.h>
 
-uint8_t mouse_cycle = 0;
-uint8_t mouse_packet[3];
+static uint8_t mouse_cycle        = 0;
+static uint8_t mouse_packet[MOUSE_PACKET_SIZE];
+static int     mouse_position[2]  = { MOUSE_DEFAULT_X, MOUSE_DEFAULT_Y };
 
-int mouse_position[2] = {400, 300};
+void move_mouse_cursor(int x_move, int y_move) {
+    mouse_position[0] += x_move;
+    mouse_position[1] += y_move;
+    serial_printf("Mouse moved to: (%d, %d)\n", mouse_position[0], mouse_position[1]);
+}
+
+void handle_mouse_packet(uint8_t *packet) {
+    bool left   = packet[0] & MOUSE_BTN_LEFT;
+    bool right  = packet[0] & MOUSE_BTN_RIGHT;
+    bool middle = packet[0] & MOUSE_BTN_MIDDLE;
+
+    int x_move = (int)packet[1];
+    int y_move = (int)packet[2];
+
+    if (packet[0] & MOUSE_X_SIGN)
+        x_move |= ~0xFF;
+    if (packet[0] & MOUSE_Y_SIGN)
+        y_move |= ~0xFF;
+
+    y_move = -y_move;
+
+    serial_printf(
+        "Mouse packet: b0=0x%x b1=0x%x b2=0x%x buttons[L:%d M:%d R:%d]\n",
+        packet[0], packet[1], packet[2],
+        left, middle, right
+    );
+
+    move_mouse_cursor(x_move, y_move);
+}
 
 void mouse_handler(void) {
-    uint8_t status = inb(0x64);
+    uint8_t status = inb(PS2_STATUS_PORT);
 
-    // Check if data is actually available and if it's from the mouse
-    if ((status & 0x01) && (status & 0x20)) {
-        uint8_t data = inb(0x60);
+    if ((status & PS2_STATUS_OUT_FULL) && (status & PS2_STATUS_MOUSE_DATA)) {
+        uint8_t data = inb(PS2_DATA_PORT);
 
-        // State machine to collect the 3-byte packet
-        switch(mouse_cycle) {
+        switch (mouse_cycle) {
             case 0:
-                // Bit 3 of the first byte should always be 1
-                if (!(data & 0x08)) return; // Discard out-of-sync data
+                if (!(data & MOUSE_ALWAYS_ONE)) return;
                 mouse_packet[0] = data;
                 mouse_cycle++;
                 break;
@@ -27,55 +57,17 @@ void mouse_handler(void) {
                 break;
             case 2:
                 mouse_packet[2] = data;
-                handle_mouse_packet(mouse_packet); // Process the full packet
-                mouse_cycle = 0; // Reset for next packet
+                handle_mouse_packet(mouse_packet);
+                mouse_cycle = 0;
                 break;
         }
     }
 
-    outb(0xA0, 0x20); // Slave PIC
-    outb(0x20, 0x20); // Master PIC
+    outb(PIC_SLAVE_CMD,  PIC_EOI);
+    outb(PIC_MASTER_CMD, PIC_EOI);
 }
 
-void move_mouse_cursor(int x_move, int y_move) {
-    mouse_position[0] += x_move;
-    mouse_position[1] += y_move;
-    serial_printf("Mouse moved to: (%d, %d)\n", mouse_position[0], mouse_position[1]);
-}
-
-void handle_mouse_packet(uint8_t* packet) {
-    bool left   = packet[0] & 0x01;
-    bool right  = packet[0] & 0x02;
-    bool middle = packet[0] & 0x04;
-
-    // 1. Start with the raw 8-bit values
-    int x_move = (int)packet[1];
-    int y_move = (int)packet[2];
-
-    // 2. Sign-extend to 32 bits if needed
-    if (packet[0] & 0x10) { // X Sign bit
-        x_move |= ~0xFF;
-    }
-    if (packet[0] & 0x20) { // Y Sign bit
-        y_move |= ~0xFF;
-    }
-
-    y_move = -y_move;
-
-    serial_printf(
-        "Mouse packet: b0=0x%x b1=0x%x b2=0x%x buttons[L:%d M:%d R:%d]\n",
-        packet[0],
-        packet[1],
-        packet[2],
-        left,
-        middle,
-        right
-    );
-
-    move_mouse_cursor(x_move, y_move);
-}
-
-void mouse_dispatcher(char* ps2_data) {
+void mouse_dispatcher(char *ps2_data) {
     (void)ps2_data;
     mouse_handler();
 }

@@ -1,43 +1,73 @@
-KERNEL     = build/kernel.elf
-KERNELE    = src/entry.s
-KERNELC    = src/main.c
-BOOTO      = build/boot.o
-KERNELO    = build/kernel.o
+KERNEL = build/kernel.elf
 
 CC = gcc
 AS = nasm
 LD = ld
 
-CFLAGS  = -ffreestanding -m64 -O2 -Wall -Wextra -fno-pic -fno-stack-protector -mno-red-zone -mcmodel=kernel -nostdlib -g -Og -mcmodel=kernel -I ../Utilities -I src/Drivers/Headers
-LDFLAGS = -m elf_x86_64 -T src/linker.ld -nostdlib
+
+C_SOURCES   := $(shell find src -name "*.c")
+ASM_SOURCES := $(shell find src -name "*.asm" -o -name "*.s")
+
+# Convert source paths to object paths
+C_OBJECTS   := $(patsubst src/%.c,build/%.o,$(C_SOURCES))
+ASM_OBJECTS := $(patsubst src/%.asm,build/%.o,$(filter %.asm,$(ASM_SOURCES)))
+ASM_OBJECTS += $(patsubst src/%.s,build/%.o,$(filter %.s,$(ASM_SOURCES)))
+
+OBJECTS := $(C_OBJECTS) $(ASM_OBJECTS)
+
+
+CFLAGS = \
+	-ffreestanding \
+	-m64 \
+	-O2 \
+	-Wall \
+	-Wextra \
+	-fno-pic \
+	-fno-stack-protector \
+	-mno-red-zone \
+	-mcmodel=kernel \
+	-nostdlib \
+	-g \
+	-Og \
+	-I ../Utilities \
+	-I src/Drivers/Headers \
+	-I src/Core/Headers \
+	-I src/System/Headers \
+	-I include
+
+LDFLAGS = \
+	-m elf_x86_64 \
+	-T src/linker.ld \
+	-nostdlib
+
 
 all: $(KERNEL)
 
-$(KERNEL): compile assemble
-	@echo "  $$  Linking    --> Kernel/build/$(notdir $(KERNEL))"
-	@$(LD) $(LDFLAGS) -o $(KERNEL) $(BOOTO) $(KERNELO)
-	@rm -f $(KERNELO) $(BOOTO)
+$(KERNEL): $(OBJECTS)
+	@echo "  $$  Linking    --> $(KERNEL)"
+	@$(LD) $(LDFLAGS) -o $@ $(OBJECTS)
 
-compile:
-	@echo "  $$  Compiling  --> Kernel/build/$(notdir $(KERNELO))"
-	@$(CC) $(CFLAGS) -c $(KERNELC) -o $(KERNELO)
-	@echo "  $$  Compiling  --> Kernel/build/drivers/ata.o"
-	@$(CC) $(CFLAGS) -c src/drivers/ata.c -o build/drivers/ata.o
-	@echo "  $$  Compiling  --> Kernel/build/drivers/fat32.o"
-	@$(CC) $(CFLAGS) -c src/drivers/fat32.c -o build/drivers/fat32.o
-	@echo "  $$  Compiling  --> Kernel/build/drivers/keyboard.o"
-	@$(CC) $(CFLAGS) -c src/drivers/keyboard.c -o build/drivers/keyboard.o
-	@echo "  $$  Compiling  --> Kernel/build/drivers/screen.o"
-	@$(CC) $(CFLAGS) -c src/drivers/screen.c -o build/drivers/screen.o
-	@echo "  $$  Compiling  --> Kernel/build/drivers/mouse.o"
-	@$(CC) $(CFLAGS) -c src/drivers/mouse.c -o build/drivers/mouse.o
 
-assemble:
-	@echo "  $$  Assembling --> Kernel/build/$(notdir $(BOOTO))"
-	@$(AS) -f elf64 $(KERNELE) -o $(BOOTO)
+build/%.o: src/%.c
+	@mkdir -p $(dir $@)
+	@echo "  $$  Compiling  --> $@"
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+
+build/%.o: src/%.asm
+	@mkdir -p $(dir $@)
+	@echo "  $$  Assembling --> $@"
+	@$(AS) -f elf64 $< -o $@
+
+
+build/%.o: src/%.s
+	@mkdir -p $(dir $@)
+	@echo "  $$  Assembling --> $@"
+	@$(AS) -f elf64 $< -o $@
+
 
 clean:
-	@echo "  $$  Cleaning   --> Kernel/build/"
-	@rm -f $(KERNELO) $(BOOTO) $(KERNEL)
+	@echo "  $$  Cleaning   --> build/" 
+	@rm -rf build/*
 
 .PHONY: all clean

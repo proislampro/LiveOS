@@ -1,5 +1,9 @@
 #include <stdint.h>
+#include <string.h>
+#include <screen.h>
+#include <ata.h>
 #include <fat32.h>
+#include <memory.h>
 
 static struct FAT32 fat_instance;
 struct FAT32* fat = &fat_instance;
@@ -9,12 +13,11 @@ uint32_t cluster_to_lba(struct FAT32* f, uint32_t cluster) {
 }
 
 int read_cluster(struct FAT32* f, uint32_t cluster, uint8_t* buf) {
-    for (uint8_t i = 0; i < f->sectors_per_cluster; i++) 
-        if (read_sector(cluster_to_lba(f, cluster) + i, buf + i * f->bytes_per_sector) != 0) return -1;
+    if (ata_read_sectors(0, 0, cluster_to_lba(f, cluster), f->sectors_per_cluster, buf) != 0) return -1;
     return 0;
 }
 
-static void pad_short_name(const char* name, char out[11]) {
+void pad_short_name(const char* name, char out[11]) {
     memset(out, ' ', 11);
     int i = 0, j = 0;
     while (name[i] == '/') i++;
@@ -37,30 +40,30 @@ uint32_t fat32_next_cluster(struct FAT32* f, uint32_t cluster) {
     uint32_t fat_sector = f->fat_start_lba + (fat_offset / f->bytes_per_sector);
     uint32_t ent_offset = fat_offset % f->bytes_per_sector;
     uint8_t buffer[512];
-    if (read_sector(fat_sector, buffer) != 0) return 0x0FFFFFFF;
+    if (ata_read_sectors(0, 0, fat_sector, 1, buffer) != 0) return 0x0FFFFFFF;
 
     uint32_t next = (*(uint32_t*)(buffer + ent_offset)) & 0x0FFFFFFF;
     if (next >= 0x0FFFFFF8) return 0;  // End of cluster chain
     return next;
 }
 
-int fat32_init() {
+int fat32_init(struct FAT32* f, uint32_t partition_start_lba) {
     uint8_t buffer[512];
-    int read_result = read_sector(2048, buffer);
+    int read_result = ata_read_sectors(0, 0, partition_start_lba, 1, buffer);
     if (read_result != 0) return read_result;
 
     struct FAT32_BPB* bpb = (struct FAT32_BPB*)buffer;
 
     if (bpb->BPB_BytsPerSec == 0 || bpb->BPB_SecPerClus == 0 || bpb->BPB_FATSz32 == 0) return -2;
 
-    fat->partition_start_lba = 2048;
-    fat->fat_start_lba = fat->partition_start_lba + bpb->BPB_RsvdSecCnt;
-    fat->fat_size_bytes = bpb->BPB_FATSz32 * bpb->BPB_BytsPerSec;
-    fat->data_start_lba = fat->partition_start_lba + bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32);
-    fat->root_cluster = bpb->BPB_RootClus;
-    fat->bytes_per_sector = bpb->BPB_BytsPerSec;
-    fat->sectors_per_cluster = bpb->BPB_SecPerClus;
-    fat->bytes_per_cluster = fat->bytes_per_sector * fat->sectors_per_cluster;
+    f->partition_start_lba = partition_start_lba;
+    f->fat_start_lba = f->partition_start_lba + bpb->BPB_RsvdSecCnt;
+    f->fat_size_bytes = bpb->BPB_FATSz32 * bpb->BPB_BytsPerSec;
+    f->data_start_lba = f->partition_start_lba + bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32);
+    f->root_cluster = bpb->BPB_RootClus;
+    f->bytes_per_sector = bpb->BPB_BytsPerSec;
+    f->sectors_per_cluster = bpb->BPB_SecPerClus;
+    f->bytes_per_cluster = f->bytes_per_sector * f->sectors_per_cluster;
 
     return 0;
 }

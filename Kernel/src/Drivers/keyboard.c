@@ -1,4 +1,7 @@
 #include <stdint.h>
+#include <screen.h>
+#include <inout.h>
+
 
 const char scancode_normal[128] = {
     0,  27, '&','e','"','\'','(','-','e','_','c','a',')','=','\b',

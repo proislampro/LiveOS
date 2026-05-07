@@ -1,5 +1,5 @@
 #include <stdint.h>
-
+#include <inout.h>
 
 void delay(uint32_t count) {
     uint32_t new_count = count * 0xa0000;

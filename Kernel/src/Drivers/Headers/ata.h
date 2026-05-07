@@ -4,82 +4,59 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/* ATA Command Codes */
-#define ATA_CMD_READ_SECTORS        0x20
-#define ATA_CMD_WRITE_SECTORS       0x30
-#define ATA_CMD_IDENTIFY_DEVICE     0xEC
-#define ATA_CMD_SET_FEATURES        0xEF
+/* ── I/O Ports ─────────────────────────────────────────────────────────── */
+#define ATA_DATA        0x1F0   /* Data register (R/W)                      */
+#define ATA_ERROR       0x1F1   /* Error register (R)                        */
+#define ATA_FEATURES    0x1F1   /* Features register (W)                     */
+#define ATA_SECTOR_CNT  0x1F2   /* Sector count register                     */
+#define ATA_LBA_LOW     0x1F3   /* LBA low byte                              */
+#define ATA_LBA_MID     0x1F4   /* LBA mid byte                              */
+#define ATA_LBA_HIGH    0x1F5   /* LBA high byte                             */
+#define ATA_DRIVE_SEL   0x1F6   /* Drive/head select register                */
+#define ATA_STATUS      0x1F7   /* Status register (R)                       */
+#define ATA_COMMAND     0x1F7   /* Command register (W)                      */
+#define ATA_ALT_STATUS  0x3F6   /* Alternate status register (R)             */
+#define ATA_DEV_CTRL    0x3F6   /* Device control register (W)               */
 
-/* ATA Status Register Bits */
-#define ATA_STATUS_BUSY             0x80
-#define ATA_STATUS_READY            0x40
-#define ATA_STATUS_FAULT            0x20
-#define ATA_STATUS_SEEK_COMPLETE    0x10
-#define ATA_STATUS_DATA_REQUEST     0x08
-#define ATA_STATUS_CORRECTED_DATA   0x04
-#define ATA_STATUS_INDEX            0x02
-#define ATA_STATUS_ERROR            0x01
+/* ── ATA Commands ──────────────────────────────────────────────────────── */
+#define ATA_CMD_READ        0x20    /* Read sectors (with retry)             */
+#define ATA_CMD_WRITE       0x30    /* Write sectors (with retry)            */
+#define ATA_CMD_IDENTIFY    0xEC    /* Identify drive                        */
+#define ATA_CMD_FLUSH       0xE7    /* Flush cache                           */
+#define ATA_CMD_READ_DMA    0xC8    /* Read DMA                              */
+#define ATA_CMD_WRITE_DMA   0xCA    /* Write DMA                             */
 
-/* ATA Error Register Bits */
-#define ATA_ERROR_BAD_BLOCK         0x80
-#define ATA_ERROR_UNCORRECTABLE     0x40
-#define ATA_ERROR_MEDIA_CHANGED     0x20
-#define ATA_ERROR_ID_NOT_FOUND      0x10
-#define ATA_ERROR_MEDIA_CHANGE_REQ  0x08
-#define ATA_ERROR_ABORT             0x04
-#define ATA_ERROR_TRACK_0_NOT_FOUND 0x02
-#define ATA_ERROR_ADDRESS_MARK      0x01
+/* ── Status Register Flags ─────────────────────────────────────────────── */
+#define ATA_STAT_ERR    (1 << 0)    /* Error occurred                        */
+#define ATA_STAT_IDX    (1 << 1)    /* Index (always 0)                      */
+#define ATA_STAT_CORR   (1 << 2)    /* Corrected data (always 0)             */
+#define ATA_STAT_DRQ    (1 << 3)    /* Data request — ready for PIO transfer */
+#define ATA_STAT_SRV    (1 << 4)    /* Overlapped mode service request       */
+#define ATA_STAT_DF     (1 << 5)    /* Drive fault (does not set ERR)        */
+#define ATA_STAT_RDY    (1 << 6)    /* Drive ready                           */
+#define ATA_STAT_BSY    (1 << 7)    /* Drive busy                            */
 
-/* ATA Port Offsets */
-#define ATA_REG_DATA                0x00
-#define ATA_REG_ERROR               0x01
-#define ATA_REG_FEATURES            0x01
-#define ATA_REG_SECTOR_COUNT        0x02
-#define ATA_REG_LBA_LOW             0x03
-#define ATA_REG_LBA_MID             0x04
-#define ATA_REG_LBA_HIGH            0x05
-#define ATA_REG_DEVICE              0x06
-#define ATA_REG_COMMAND             0x07
-#define ATA_REG_STATUS              0x07
-#define ATA_REG_CONTROL             0x206
-#define ATA_REG_ALT_STATUS          0x206
+/* ── Drive Select Masks ────────────────────────────────────────────────── */
+#define ATA_DRIVE_MASTER_CHS    0xA0    /* Select master, CHS mode           */
+#define ATA_DRIVE_SLAVE_CHS     0xB0    /* Select slave,  CHS mode           */
+#define ATA_DRIVE_MASTER_LBA    0xE0    /* Select master, LBA mode           */
+#define ATA_DRIVE_SLAVE_LBA     0xF0    /* Select slave,  LBA mode           */
+#define ATA_DRIVE_LBA28_MASK    0x0F    /* LBA bits 24-27 mask               */
 
-/* Device Selection */
-#define ATA_DEVICE_MASTER           0x00
-#define ATA_DEVICE_SLAVE            0x10
+/* ── Return Codes ──────────────────────────────────────────────────────── */
+#define ATA_SUCCESS      0
+#define ATA_ERROR       -1
 
-// Error codes
-#define ATA_SUCCESS     0
-#define ATA_ERROR       1
-#define ATA_TIMEOUT    -1
+/* ── Geometry / Limits ─────────────────────────────────────────────────── */
+#define ATA_SECTOR_SIZE     512         /* Bytes per sector                  */
+#define ATA_IDENTIFY_WORDS  256         /* Words returned by IDENTIFY        */
 
-/* ATA Device Structure */
-typedef struct {
-    uint8_t channel;
-    uint8_t device;
-    uint16_t signature;
-    uint16_t capabilities;
-    uint32_t command_sets;
-    uint32_t size;
-    char serial[21];
-    char model[41];
-    char firmware[9];
-} ATA_Device;
-
-/* ATA Channel Structure */
-typedef struct {
-    uint16_t base;
-    uint16_t ctrl;
-    uint8_t drive_count;
-    ATA_Device devices[2];
-} ATA_Channel;
-
-/* Function Declarations */
-void ata_init(void);
-int ata_identify(uint8_t channel, uint8_t device);
-int ata_read_sectors(uint8_t channel, uint8_t device, uint32_t lba, uint32_t count, void *buffer);
-int ata_write_sectors(uint8_t channel, uint8_t device, uint32_t lba, uint32_t count, void *buffer);
+/* ── Function Prototypes ───────────────────────────────────────────────── */
+void    ata_init(void);
+int     ata_identify(uint8_t channel, uint8_t device);
+int     ata_read_sectors(uint8_t channel, uint8_t device, uint32_t lba, uint32_t count, void *buffer);
+int     ata_write_sectors(uint8_t channel, uint8_t device, uint32_t lba, uint32_t count, void *buffer);
 uint8_t ata_read_status(uint8_t channel);
-void ata_wait_ready(uint8_t channel);
+void    ata_wait_ready(uint8_t channel);
 
 #endif /* ATA_H */

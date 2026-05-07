@@ -2,6 +2,10 @@
 #include <stddef.h>
 #include <limine.h>
 #include <Font.c>
+#include <screen.h>
+#include <kprintf.c>
+
+framebuffer_t fb;
 
 // 1. Tell Limine we want a framebuffer
 static volatile struct limine_framebuffer_request framebuffer_request = {
@@ -9,14 +13,6 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
     .revision = 0
 };
 
-typedef struct {
-    uint64_t addr;
-    uint32_t width;
-    uint32_t height;
-    uint32_t pitch;
-} framebuffer_t;
-
-framebuffer_t fb;
 
 void init_screen() {
 
@@ -56,8 +52,6 @@ void draw_container(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uin
     draw_rect(x + width - border_width, y, border_width, height, border_color); // Right border
 }
 
-#define FONT_CHAR_WIDTH 8
-#define FONT_CHAR_HEIGHT 16
 
 void print_char(char c, uint32_t x, uint32_t y, uint32_t fg_color, uint32_t bg_color) {
     for (uint32_t j = 0; j < FONT_CHAR_HEIGHT; j++) {

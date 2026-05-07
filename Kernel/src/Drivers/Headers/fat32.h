@@ -60,8 +60,8 @@ struct DIR_entry {
 
 int fat32_init(struct FAT32* fat, uint32_t partition_start_lba);
 uint32_t fat32_find_file(struct FAT32* f, const char* path);
-int read_cluster(struct FAT32* fat, uint32_t cluster, void* buffer);
-int fat32_read_file(struct FAT32* fat, uint32_t start_cluster, void* buffer, uint32_t max_size);
-int pad_short_name(const char* name, char* out_83);
+int read_cluster(struct FAT32* fat, uint32_t cluster, uint8_t* buffer);
+int fat32_read_file(struct FAT32* f, const char* path, uint8_t* buf, uint32_t buf_size);
+void pad_short_name(const char* name, char out[11]);
 
 #endif // FAT32_H
