@@ -1,4 +1,5 @@
 extern mouse_dispatcher ; void mouse_dispatcher(registers_t *regs);
+global mouse_handler_wrapper
 
 mouse_handler_wrapper: ; void mouse_handler_wrapper();
     push rax

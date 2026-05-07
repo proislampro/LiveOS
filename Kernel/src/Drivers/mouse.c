@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <inout.h>
 #include <screen.h>
-#include <kprintf.c>
+#include <serial.h>
 #include <mouse.h>
 
 static uint8_t mouse_cycle        = 0;

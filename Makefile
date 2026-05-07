@@ -12,23 +12,19 @@ OVMF        := /usr/share/ovmf/OVMF.fd
 MTOOLS_IMG  := -i $(IMAGE_NAME)@@1M
 
 
-.PHONY: all multiboot singleboot run clean kernel bootloader
+.PHONY: all run clean kernel
 
 
 all:
-	@$(MAKE) multiboot --no-print-directory
+	@$(MAKE) $(IMAGE_NAME) --no-print-directory
 
 kernel:
 	@echo "@ Building    : Kernel"
 	@$(MAKE) -C Kernel --no-print-directory
 
-bootloader:
-	@echo "@ Building    : Bootloader"
-	@$(MAKE) -C Bootloader --no-print-directory
 
 
-
-$(IMAGE_NAME): kernel bootloader
+$(IMAGE_NAME): kernel
 	@echo "@ Building    : $(IMAGE_NAME)"
 	@dd if=/dev/zero of=$(IMAGE_NAME) bs=1M count=64 status=none
 	@parted -s $(IMAGE_NAME) mklabel gpt
@@ -40,21 +36,11 @@ $(IMAGE_NAME): kernel bootloader
 	@mmd     $(MTOOLS_IMG) ::/system/bin
 	@mcopy   $(MTOOLS_IMG) $(KERNEL) ::/system/bin/livekernel.elf
 	@mcopy   $(MTOOLS_IMG) hello.txt ::/hello.txt
-
-multiboot: $(IMAGE_NAME)
 	@echo "@ Installing  : Limine + LiveOS Bootloader"
 	-@mdel  $(MTOOLS_IMG) ::/boot/limine.conf        2>/dev/null; true
 	@mcopy  $(MTOOLS_IMG) $(CONFIG)                  ::/boot/limine.conf
 	-@mdel  $(MTOOLS_IMG) ::/EFI/BOOT/BOOTX64.EFI   2>/dev/null; true
 	@mcopy  $(MTOOLS_IMG) $(LIMINE_DIR)/BOOTX64.EFI  ::/EFI/BOOT/BOOTX64.EFI
-	@mmd    $(MTOOLS_IMG) ::/EFI/LiveOS
-	-@mdel  $(MTOOLS_IMG) ::/EFI/LiveOS/BOOTX64.EFI  2>/dev/null; true
-	@mcopy  $(MTOOLS_IMG) $(MY_BOOT)                 ::/EFI/LiveOS/BOOTX64.EFI
-
-singleboot: $(IMAGE_NAME)
-	@echo "@ Installing  : LiveOS bootloader"
-	-@mdel  $(MTOOLS_IMG) ::/EFI/BOOT/BOOTX64.EFI   2>/dev/null; true
-	@mcopy  $(MTOOLS_IMG) $(MY_BOOT)                 ::/EFI/BOOT/BOOTX64.EFI
 
 
 MEMORY := 512
@@ -75,7 +61,6 @@ run:
 clean:
 	@echo "@ Cleaning    :"
 	@$(MAKE) -C Kernel     clean --no-print-directory
-	@$(MAKE) -C Bootloader clean --no-print-directory
 	@rm -f $(IMAGE_NAME) 
 
 rebuild: clean all

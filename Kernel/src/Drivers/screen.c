@@ -3,7 +3,7 @@
 #include <limine.h>
 #include <Font.c>
 #include <screen.h>
-#include <kprintf.c>
+#include <serial.h>
 
 framebuffer_t fb;
 

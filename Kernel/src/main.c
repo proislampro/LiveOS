@@ -4,7 +4,7 @@
 #include <gdt.h>
 #include <idt.h>
 #include <elf.h>
-#include <kprintf.c>
+#include <serial.h>
 
 // static uint8_t elf_buffer[8192];
 // #define USER_STACK_SIZE 0x10000
