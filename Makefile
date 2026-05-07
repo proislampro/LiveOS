@@ -1,7 +1,6 @@
 
 IMAGE_NAME  := disk.img
-KERNEL      := Kernel/build/kernel.elf
-MY_BOOT     := Bootloader/build/BOOTX64.EFI
+KERNEL      := Kernel/Build/kernel.elf
 
 LIMINE_DIR  := ./Limine
 CONFIG      := $(LIMINE_DIR)/limine.conf

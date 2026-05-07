@@ -1,4 +1,4 @@
-KERNEL = build/kernel.elf
+KERNEL = Build/kernel.elf
 
 CC = gcc
 AS = nasm
@@ -9,9 +9,9 @@ C_SOURCES   := $(shell find src -name "*.c")
 ASM_SOURCES := $(shell find src -name "*.asm" -o -name "*.s")
 
 # Convert source paths to object paths
-C_OBJECTS   := $(patsubst src/%.c,build/%.o,$(C_SOURCES))
-ASM_OBJECTS := $(patsubst src/%.asm,build/%.o,$(filter %.asm,$(ASM_SOURCES)))
-ASM_OBJECTS += $(patsubst src/%.s,build/%.o,$(filter %.s,$(ASM_SOURCES)))
+C_OBJECTS   := $(patsubst src/%.c,Build/Obj/%.o,$(C_SOURCES))
+ASM_OBJECTS := $(patsubst src/%.asm,Build/Obj/%.o,$(filter %.asm,$(ASM_SOURCES)))
+ASM_OBJECTS += $(patsubst src/%.s,Build/Obj/%.o,$(filter %.s,$(ASM_SOURCES)))
 
 OBJECTS := $(C_OBJECTS) $(ASM_OBJECTS)
 
@@ -48,26 +48,26 @@ $(KERNEL): $(OBJECTS)
 	@$(LD) $(LDFLAGS) -o $@ $(OBJECTS)
 
 
-build/%.o: src/%.c
+Build/Obj/%.o: src/%.c
 	@mkdir -p $(dir $@)
 	@echo "  $$  Compiling  --> $@"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 
-build/%.o: src/%.asm
+Build/Obj/%.o: src/%.asm
 	@mkdir -p $(dir $@)
 	@echo "  $$  Assembling --> $@"
 	@$(AS) -f elf64 $< -o $@
 
 
-build/%.o: src/%.s
+Build/Obj/%.o: src/%.s
 	@mkdir -p $(dir $@)
 	@echo "  $$  Assembling --> $@"
 	@$(AS) -f elf64 $< -o $@
 
 
 clean:
-	@echo "  $$  Cleaning   --> build/" 
-	@rm -rf build/*
+	@echo "  $$  Cleaning   --> Build/" 
+	@rm -rf Build/*
 
 .PHONY: all clean
