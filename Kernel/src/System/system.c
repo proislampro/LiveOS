@@ -1,0 +1,24 @@
+#include <stdint.h>
+
+
+void delay(uint32_t count) {
+    uint32_t new_count = count * 0xa0000;
+    volatile uint32_t i;
+    for (i = 0; i < new_count; i++) {
+        __asm__ volatile("nop");
+    }
+}
+
+void shutdown(void) {
+    outw(0x604, 0x2000);
+    for (;;) {
+        __asm__ volatile ("hlt");
+    }
+}
+
+void reboot() {
+    uint8_t good = 0x02;
+    while (good & 0x02)
+        good = inb(0x64);
+    outb(0x64, 0xFE);
+}

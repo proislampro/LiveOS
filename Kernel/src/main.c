@@ -25,8 +25,13 @@ void kmain() {
         print_string(test_str, 10, 30, 0xFFFFFF, 0x000000);
     }
 
+    scan_string(test_str, 100, '\n', 10, 50, 0xFFFFFF, 0x000000);
+    if (strcmp(test_str, "reboot") == 0) {
+        reboot();
+    }
+
     gdt_install();
-    init_syscalls();
+    init_idt();
 
     while (1);
 }
