@@ -2,6 +2,7 @@
 #include <ata.h>
 #include <serial.h>
 #include <string.h>
+#include <stdint.h>
 
 
 FILE open(const char* path) {
@@ -10,6 +11,5 @@ FILE open(const char* path) {
     split_path(path, buffer, parts);
     if (memcmp(parts[0], "dev", 6) != 0) {
         
-        return empty;
     }
 }
